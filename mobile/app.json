@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "Sofra",
+    "slug": "sofra",
+    "scheme": "sofra",
+    "version": "1.0.0",
+    "orientation": "portrait"
+  }
+}
