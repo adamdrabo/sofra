@@ -1,7 +1,5 @@
 # Sofra — structure de projet
 
-Scaffold genere a partir du document de conception (cas d'utilisation v1, modele C4 v1, modele de donnees v5).
-
 - `backend/` — serveur Node.js/Express/MongoDB : passerelle Spoonacular, comptes, fil de la communaute.
 - `mobile/` — application React Native/Expo en JavaScript (App.js, screens/, components/, navigation React Navigation), testable directement dans Expo Go : stockage local clé-valeur (AsyncStorage), génération de plan, liste de courses, écrans.
 
