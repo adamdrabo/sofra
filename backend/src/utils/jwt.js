@@ -1,11 +1,14 @@
 const jwt = require('jsonwebtoken');
 
-function genererJeton(compte) {
-  return jwt.sign(
-    { id: compte._id, courriel: compte.courriel },
-    process.env.JWT_SECRET,
-    { expiresIn: '30d' }
-  );
+function signerJeton(compteId) {
+  return jwt.sign({ sub: String(compteId) }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRATION || '7d',
+    algorithm: 'HS256',
+  });
 }
 
-module.exports = { genererJeton };
+function verifierJeton(jeton) {
+  return jwt.verify(jeton, process.env.JWT_SECRET, { algorithms: ['HS256'] })
+}
+
+module.exports = { signerJeton, verifierJeton }
