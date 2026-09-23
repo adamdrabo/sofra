@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Bouton } from '../components/Bouton';
+import { EnteteEcran } from '../components/EnteteEcran';
 import { Carte } from '../components/Carte';
 import { Puce } from '../components/Puce';
 import { ModalNormalisationIngredient } from '../components/ModalNormalisationIngredient';
@@ -112,9 +113,13 @@ export function EcranNouvelleRecette({ route, navigation }) {
   if (chargement) return null;
 
   return (
-    <ScrollView style={styles.ecran} contentContainerStyle={{ padding: 20, gap: 22, paddingBottom: 60 }}>
-      <Text style={styles.titrePage}>{id ? 'Modifier la recette' : 'Nouvelle recette'}</Text>
-
+    <View style={styles.ecran}>
+      <EnteteEcran
+        titre={id ? 'Modifier la recette' : 'Nouvelle recette'}
+        sousTitre="Crée une recette à ta façon"
+        onRetour={() => navigation.goBack()}
+      />
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 22, paddingBottom: 60 }}>
       <View style={{ gap: 8 }}>
         <Text style={styles.etiquette}>Nom de la recette</Text>
         <TextInput value={nomFr} onChangeText={setNomFr} placeholder="Ex. Mafé de bœuf" style={styles.champ} />
@@ -207,13 +212,13 @@ export function EcranNouvelleRecette({ route, navigation }) {
         onFermer={() => setModalOuvert(false)}
         onConfirmer={ajouterIngredient}
       />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: couleurs.fondEcran },
-  titrePage: { fontSize: 22, fontWeight: '600', color: couleurs.encre },
   etiquette: { fontSize: 13, fontWeight: '600', color: couleurs.encreDouce },
   champ: {
     backgroundColor: couleurs.blanc,

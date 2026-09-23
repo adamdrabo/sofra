@@ -47,7 +47,11 @@ export function EcranConfiguration({ navigation }) {
 
   return (
     <ScrollView style={styles.ecran} contentContainerStyle={styles.contenu}>
-      <EnteteEcran titre="⚙️ Préférences" sousTitre="Personnalise ton plan de repas selon tes goûts" />
+      <EnteteEcran
+        titre="Préférences"
+        sousTitre="Personnalise ton plan de repas selon tes goûts"
+        onRetour={() => navigation.goBack()}
+      />
 
       <Carte style={styles.carte}>
         <Text style={styles.libelle}>👥 Nombre de personnes</Text>

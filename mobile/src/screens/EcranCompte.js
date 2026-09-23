@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Bouton } from '../components/Bouton';
+import { EnteteEcran } from '../components/EnteteEcran';
+import { Carte } from '../components/Carte';
+import { couleurs, espacement, rayon } from '../theme';
 import { clientSofra } from '../services/clientSofra';
 import { sessionService } from '../services/sessionService';
 
-// Ecran "Gerer son compte" : cree un compte ou se connecte. Un compte
-// n'est necessaire que pour publier une recette.
 export function EcranCompte() {
   const [compte, setCompte] = useState(null);
   const [courriel, setCourriel] = useState('');
@@ -45,43 +47,93 @@ export function EcranCompte() {
 
   if (compte) {
     return (
-      <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
-        <Text style={{ fontSize: 18, marginBottom: 12 }}>Connecte en tant que {compte.nomAffiche}</Text>
-        <Button title="Se deconnecter" onPress={deconnecter} />
+      <View style={styles.ecran}>
+        <EnteteEcran titre="Mon compte" sousTitre="Ton espace personnel Sofra" />
+        <View style={styles.contenuCompte}>
+          <Carte style={styles.profilCarte}>
+            <View style={styles.avatar}><Text style={styles.avatarTexte}>{(compte.nomAffiche || 'S').charAt(0).toUpperCase()}</Text></View>
+            <Text style={styles.bienvenue}>Bienvenue, {compte.nomAffiche}</Text>
+            <Text style={styles.sousTexte}>Ton compte est connecté.</Text>
+          </Carte>
+          <Bouton titre="Se déconnecter" variante="contour" onPress={deconnecter} />
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, padding: 16, justifyContent: 'center' }}>
-      <Text style={{ fontSize: 22, fontWeight: '600', marginBottom: 16 }}>Compte</Text>
-      {erreur ? <Text style={{ color: 'red', marginBottom: 12 }}>{erreur}</Text> : null}
+    <KeyboardAvoidingView style={styles.ecran} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <EnteteEcran titre="Mon compte" sousTitre="Connecte-toi pour retrouver tes informations" />
+      <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
+        <Carte style={styles.formulaire}>
+          <View style={styles.introFormulaire}>
+            <View style={styles.miniLogo}><Text style={styles.miniLogoTexte}>S</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.formTitre}>Bienvenue sur Sofra</Text>
+              <Text style={styles.formSousTitre}>Crée ton compte ou connecte-toi.</Text>
+            </View>
+          </View>
 
-      <TextInput
-        placeholder="Nom affiche"
-        value={nomAffiche}
-        onChangeText={setNomAffiche}
-        style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 10 }}
-      />
-      <TextInput
-        placeholder="Courriel"
-        value={courriel}
-        onChangeText={setCourriel}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 10 }}
-      />
-      <TextInput
-        placeholder="Mot de passe"
-        value={motDePasse}
-        onChangeText={setMotDePasse}
-        secureTextEntry
-        style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 16 }}
-      />
+          {erreur ? <View style={styles.erreur}><Text style={styles.erreurTexte}>{erreur}</Text></View> : null}
 
-      <Button title="Creer un compte" onPress={inscrire} />
-      <View style={{ height: 8 }} />
-      <Button title="Se connecter" onPress={seConnecter} />
-    </View>
+          <View style={styles.champs}>
+            <Text style={styles.etiquette}>Nom affiché</Text>
+            <TextInput
+              placeholder="Ex. Rami"
+              placeholderTextColor={couleurs.placeholderPhoto}
+              value={nomAffiche}
+              onChangeText={setNomAffiche}
+              style={styles.champ}
+            />
+
+            <Text style={styles.etiquette}>Courriel</Text>
+            <TextInput
+              placeholder="ton@email.com"
+              placeholderTextColor={couleurs.placeholderPhoto}
+              value={courriel}
+              onChangeText={setCourriel}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              style={styles.champ}
+            />
+
+            <Text style={styles.etiquette}>Mot de passe</Text>
+            <TextInput
+              placeholder="Ton mot de passe"
+              placeholderTextColor={couleurs.placeholderPhoto}
+              value={motDePasse}
+              onChangeText={setMotDePasse}
+              secureTextEntry
+              style={styles.champ}
+            />
+          </View>
+
+          <Bouton titre="Créer mon compte" onPress={inscrire} />
+          <Bouton titre="J'ai déjà un compte" variante="contour" onPress={seConnecter} />
+        </Carte>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  ecran: { flex: 1, backgroundColor: couleurs.fondEcran },
+  contenu: { padding: espacement.md, paddingBottom: 30 },
+  contenuCompte: { padding: espacement.md, gap: 14 },
+  formulaire: { padding: 18, gap: 16 },
+  introFormulaire: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  miniLogo: { width: 48, height: 48, borderRadius: 16, backgroundColor: couleurs.fondDegrade, borderWidth: 1, borderColor: couleurs.bordure, alignItems: 'center', justifyContent: 'center' },
+  miniLogoTexte: { fontSize: 25, fontWeight: '800', color: couleurs.primaire },
+  formTitre: { fontSize: 18, fontWeight: '700', color: couleurs.encre },
+  formSousTitre: { fontSize: 13, color: couleurs.encreDouce, marginTop: 2 },
+  champs: { gap: 8 },
+  etiquette: { fontSize: 13, fontWeight: '700', color: couleurs.encreDouce, marginTop: 2 },
+  champ: { height: 52, borderRadius: rayon.bouton, borderWidth: 1, borderColor: couleurs.bordure, backgroundColor: couleurs.fondEcran, paddingHorizontal: 16, color: couleurs.encre, fontSize: 15 },
+  erreur: { padding: 11, borderRadius: 12, backgroundColor: '#FBE9E2' },
+  erreurTexte: { color: couleurs.primaireFonce, fontSize: 13 },
+  profilCarte: { alignItems: 'center', paddingVertical: 28 },
+  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: couleurs.primaire, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  avatarTexte: { color: couleurs.blanc, fontSize: 28, fontWeight: '800' },
+  bienvenue: { fontSize: 20, fontWeight: '700', color: couleurs.encre },
+  sousTexte: { marginTop: 4, fontSize: 13, color: couleurs.encreDouce }
+});

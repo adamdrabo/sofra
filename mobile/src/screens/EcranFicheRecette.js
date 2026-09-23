@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Bouton } from '../components/Bouton';
 import { Carte } from '../components/Carte';
 import { Puce } from '../components/Puce';
+import { EnteteEcran } from '../components/EnteteEcran';
 import { couleurs, rayon } from '../theme';
 import { referentielsRepository } from '../repositories/referentielsRepository';
 import { recetteRepository } from '../repositories/recetteRepository';
@@ -51,13 +52,14 @@ export function EcranFicheRecette({ route, navigation }) {
   }
 
   return (
-    <ScrollView style={styles.ecran} contentContainerStyle={{ padding: 20, gap: 22 }}>
+    <View style={styles.ecran}>
+      <EnteteEcran titre={recette.nomFr} sousTitre="Détails de la recette" onRetour={() => navigation.goBack()} />
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 22 }}>
       <View style={styles.vignette}>
         <Text style={{ fontSize: 56 }}>{recette.emoji ?? '🍽️'}</Text>
       </View>
 
       <View style={{ gap: 8 }}>
-        <Text style={styles.titre}>{recette.nomFr}</Text>
         <Text style={styles.sousTitre}>Ma recette · sans porc ni alcool</Text>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           <Puce texte={`${recette.tempsPreparation} min`} />
@@ -100,7 +102,8 @@ export function EcranFicheRecette({ route, navigation }) {
             </View>
           ))}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -113,7 +116,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  titre: { fontSize: 26, fontWeight: '600', color: couleurs.encre },
   sousTitre: { fontSize: 14, color: couleurs.encreDouce },
   sectionTitre: { fontSize: 17, fontWeight: '600', color: couleurs.encre },
   ligneIngredient: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 11 },
