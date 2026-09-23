@@ -69,7 +69,11 @@ async function detailRecette(req, res) {
   const etapes = (r.analyzedInstructions?.[0]?.steps || []).map((e) => ({ ordre: e.number, texte: e.step }));
 
 
-  const texteAVerifier = [r.title, ...ingredients.map((i) => `${i.nom} ${i.texteOriginal}`)].join(' | ');
+  const texteAVerifier = [
+    r.title,
+    ...ingredients.map((i) => `${i.nom} ${i.texteOriginal}`),
+    ...etapes.map((e) => e.texte)
+  ].join(' | ')
   const alerteExclusion = exclusion.termesPresents(texteAVerifier, termes);
 
   res.json({
