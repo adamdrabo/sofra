@@ -50,11 +50,4 @@ export const clientSofra = {
     });
   },
 
-  async consulterFil(page = 1) {
-    return appelJson(`/fil?page=${page}`);
-  },
-
-  async publierRecette(recette) {
-    return appelJson('/fil', { methode: 'POST', corps: recette, avecSession: true });
-  }
 };

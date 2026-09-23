@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { coursesRepository } from '../repositories/coursesRepository';
 import { planRepository } from '../repositories/planRepository';
 import { recetteRepository } from '../repositories/recetteRepository';
@@ -129,7 +128,7 @@ export function EcranListe() {
   const montantRestant = lignes.reduce((somme, l) => (l.estAchete ? somme : somme + l.sousTotal), 0);
 
   return (
-    <SafeAreaView style={styles.ecran} edges={['top']}>
+    <View style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
         <EnteteEcran titre="🛒 Liste de courses" sousTitre="Pour la semaine en cours" />
 
@@ -191,7 +190,7 @@ export function EcranListe() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
