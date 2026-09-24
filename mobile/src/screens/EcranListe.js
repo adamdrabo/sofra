@@ -5,9 +5,11 @@ import { coursesRepository } from '../repositories/coursesRepository';
 import { planRepository } from '../repositories/planRepository';
 import { recetteRepository } from '../repositories/recetteRepository';
 import { referentielsRepository } from '../repositories/referentielsRepository';
+import { Bouton } from '../components/Bouton';
 import { Carte } from '../components/Carte';
 import { EnteteEcran } from '../components/EnteteEcran';
 import { Puce } from '../components/Puce';
+import { genererListeDuPlan } from '../services/listeService';
 import { couleurs, espacement } from '../theme';
 
 // Associe un emoji a un ingredient a partir de mots-cles dans son nom.
@@ -34,12 +36,42 @@ function emojiPourIngredient(nom) {
 
 // Ecran "Liste" : cas d'utilisation "Preparer sa liste d'epicerie" et
 // "Suivre le cout de sa semaine". Affiche la liste de courses du plan
-// courant si elle existe deja ; la generation des lignes a partir des
-// recettes du plan se fait ailleurs, via coursesRepository.creerListe().
+// courant, et permet de la (re)calculer via listeService.
 export function EcranListe() {
   const [liste, setListe] = useState(null);
   const [lignes, setLignes] = useState([]);
   const [groupes, setGroupes] = useState([]);
+  const [enChargement, setEnChargement] = useState(false);
+  const [message, setMessage] = useState(null);
+  // Change a chaque generation, pour forcer le rechargement de l'ecran.
+  const [version, setVersion] = useState(0);
+
+  // Calcule la liste a partir du plan courant (service listeService).
+  // Seules les recettes locales sont chiffrees : les repas venus de
+  // l'API sont comptes a part, la licence interdisant de conserver
+  // leurs ingredients.
+  async function genererListe() {
+    setEnChargement(true);
+    setMessage(null);
+    try {
+      const plan = await planRepository.obtenirDernierPlan();
+      if (!plan) {
+        setMessage("Génère d'abord un plan dans l'onglet Semaine.");
+        return;
+      }
+      const resultat = await genererListeDuPlan(plan.id);
+      setMessage(
+        resultat.repasChiffres === 0
+          ? "Aucun repas du plan ne vient de tes recettes. Fais un appui long sur un repas de la semaine pour le remplacer par une des tiennes."
+          : `Liste calculée à partir de ${resultat.repasChiffres} repas sur ${resultat.totalRepas}.`
+      );
+      setVersion((v) => v + 1);
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Erreur inconnue');
+    } finally {
+      setEnChargement(false);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -111,7 +143,7 @@ export function EcranListe() {
       return () => {
         annule = true;
       };
-    }, [])
+    }, [version])
   );
 
   async function basculerAchete(ligne) {
@@ -189,6 +221,18 @@ export function EcranListe() {
             </View>
           ))
         )}
+
+        {message ? (
+          <Carte style={styles.carte}>
+            <Text style={styles.videTexte}>{message}</Text>
+          </Carte>
+        ) : null}
+
+        <Bouton
+          titre={liste ? 'Regénérer ma liste' : 'Générer ma liste'}
+          onPress={genererListe}
+          enChargement={enChargement}
+        />
       </ScrollView>
     </View>
   );

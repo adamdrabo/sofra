@@ -3,6 +3,7 @@ import { Text, View, StyleSheet } from 'react-native';
 import { EcranSemaine } from '../screens/EcranSemaine';
 import { EcranRecettes } from '../screens/EcranRecettes';
 import { EcranListe } from '../screens/EcranListe';
+import { EcranFil } from '../screens/EcranFil';
 import { EcranCompte } from '../screens/EcranCompte';
 import { couleurs } from '../theme';
 
@@ -50,6 +51,18 @@ function IconeOnglet({ nom, actif }) {
     );
   }
 
+  if (nom === 'communaute') {
+    // Deux silhouettes cote a cote : le fil est fait de recettes
+    // partagees par d'autres membres.
+    return (
+      <View style={styles.icone}>
+        <View style={[styles.teteGauche, { backgroundColor: couleur }]} />
+        <View style={[styles.teteDroite, { backgroundColor: couleur }]} />
+        <View style={[styles.epaulesLarges, { borderColor: couleur }]} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.icone}>
       <View style={[styles.tete, { backgroundColor: couleur }]} />
@@ -57,6 +70,15 @@ function IconeOnglet({ nom, actif }) {
     </View>
   );
 }
+
+// Nom de l'icone a dessiner pour chaque onglet.
+const ICONES = {
+  Semaine: 'semaine',
+  Recettes: 'recettes',
+  Liste: 'liste',
+  Communaute: 'communaute',
+  Compte: 'compte'
+};
 
 export function TabsNavigator() {
   return (
@@ -69,17 +91,13 @@ export function TabsNavigator() {
         tabBarLabelStyle: styles.label,
         tabBarStyle: styles.barre,
         tabBarItemStyle: styles.item,
-        tabBarIcon: ({ focused }) => (
-          <IconeOnglet
-            actif={focused}
-            nom={route.name === 'Semaine' ? 'semaine' : route.name === 'Recettes' ? 'recettes' : route.name === 'Liste' ? 'liste' : 'compte'}
-          />
-        )
+        tabBarIcon: ({ focused }) => <IconeOnglet actif={focused} nom={ICONES[route.name] ?? 'compte'} />
       })}
     >
       <Tab.Screen name="Semaine" component={EcranSemaine} />
       <Tab.Screen name="Recettes" component={EcranRecettes} />
       <Tab.Screen name="Liste" component={EcranListe} />
+      <Tab.Screen name="Communaute" component={EcranFil} options={{ title: 'Communauté' }} />
       <Tab.Screen name="Compte" component={EcranCompte} />
     </Tab.Navigator>
   );
@@ -96,8 +114,10 @@ const styles = StyleSheet.create({
     elevation: 0,
     shadowOpacity: 0
   },
-  item: { paddingHorizontal: 2 },
-  label: { fontSize: 12, fontWeight: '600', marginTop: 1 },
+  // Cinq onglets au lieu de quatre : un peu moins de place et un
+  // libelle plus petit pour que "Communaute" tienne sur une ligne.
+  item: { paddingHorizontal: 0 },
+  label: { fontSize: 10, fontWeight: '600', marginTop: 1 },
   icone: { width: 26, height: 25, alignItems: 'center', justifyContent: 'center' },
   calendrier: { width: 22, height: 21, borderWidth: 2, borderRadius: 5, overflow: 'hidden' },
   calendrierLigne: { height: 4, width: '100%' },
@@ -110,5 +130,8 @@ const styles = StyleSheet.create({
   lignePoint: { width: 4, height: 4, borderRadius: 4 },
   ligneTexte: { height: 2, width: 14, borderRadius: 2 },
   tete: { width: 9, height: 9, borderRadius: 9, position: 'absolute', top: 2 },
+  teteGauche: { width: 8, height: 8, borderRadius: 8, position: 'absolute', top: 2, left: 3 },
+  teteDroite: { width: 8, height: 8, borderRadius: 8, position: 'absolute', top: 2, right: 3 },
+  epaulesLarges: { width: 24, height: 10, borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 12, borderTopRightRadius: 12, position: 'absolute', bottom: 2 },
   epaules: { width: 20, height: 11, borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 12, borderTopRightRadius: 12, position: 'absolute', bottom: 1 }
 });

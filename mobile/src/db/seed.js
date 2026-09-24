@@ -38,6 +38,35 @@ export async function ensemencerSiVide() {
     { id: 10, nomFr: 'Sel', nomEn: 'Salt', nomAr: 'ملح', nomNormalise: 'sel', codeUniteBase: 'g', provenance: 'SEED', dateCreation: maintenant }
   ];
 
+  // Prix de depart pour les dix ingredients du referentiel. Sans eux, la
+  // premiere liste affiche zero et le cas "Suivre le cout de sa semaine"
+  // ne demarre jamais (document v5, section 07).
+  //
+  // prix est le montant paye POUR quantite unites : le cout unitaire est
+  // calcule par coutService (prix / quantite). Les unites sont les unites
+  // de base de chaque ingredient (g, ml, piece).
+  //
+  // ATTENTION : seul le boeuf vient d'un vrai releve (Maxi, 28,64 $/kg).
+  // Les neuf autres sont des estimations a remplacer par des releves.
+  const prixReference = [
+    { id: 1, ingredientId: 1, prix: 28.64, quantite: 1000, codeUnite: 'g' },
+    { id: 2, ingredientId: 2, prix: 0.8, quantite: 1, codeUnite: 'piece' },
+    { id: 3, ingredientId: 3, prix: 0.6, quantite: 1, codeUnite: 'piece' },
+    { id: 4, ingredientId: 4, prix: 4.5, quantite: 1000, codeUnite: 'g' },
+    { id: 5, ingredientId: 5, prix: 0.5, quantite: 1, codeUnite: 'piece' },
+    { id: 6, ingredientId: 6, prix: 2.5, quantite: 400, codeUnite: 'ml' },
+    { id: 7, ingredientId: 7, prix: 12.0, quantite: 750, codeUnite: 'ml' },
+    { id: 8, ingredientId: 8, prix: 11.0, quantite: 1000, codeUnite: 'g' },
+    { id: 9, ingredientId: 9, prix: 0.35, quantite: 1, codeUnite: 'piece' },
+    { id: 10, ingredientId: 10, prix: 2.0, quantite: 1000, codeUnite: 'g' }
+  ].map((p) => ({
+    ...p,
+    origine: 'SEED',
+    region: 'Montreal',
+    dateReleve: maintenant.slice(0, 10),
+    estActif: true
+  }));
+
   const preference = {
     id: 1,
     nombrePersonnes: 2,
@@ -48,7 +77,9 @@ export async function ensemencerSiVide() {
   };
 
   // Deux recettes d'exemple pour ne pas ouvrir l'appli sur un ecran
-  // vide (provenance SEED, comme les referentiels ci-dessus).
+  // vide (provenance SEED, comme les referentiels ci-dessus). Elles
+  // servent aussi a remplacer un repas du plan, seules les recettes
+  // locales pouvant etre chiffrees.
   const recettes = [
     {
       id: 101,
@@ -97,41 +128,6 @@ export async function ensemencerSiVide() {
     }
   ];
 
-  // Plan et liste de courses de demonstration, en attendant que le
-  // calcul d'agregation appelle vraiment coursesRepository.creerListe().
-  // A retirer une fois cette fonction ecrite.
-  const planDemo = {
-    id: 501,
-    dateDebut: maintenant,
-    nombrePersonnes: 2,
-    carte: 'EQUILIBRE',
-    deviseCode: 'CAD',
-    dateCreation: maintenant,
-    repas: [
-      { id: 5011, recetteId: 101, recetteExterneId: null, jourSemaine: 1, typeRepas: 'DINER', nombrePortions: 2 },
-      { id: 5012, recetteId: 102, recetteExterneId: null, jourSemaine: 1, typeRepas: 'DEJEUNER', nombrePortions: 2 }
-    ]
-  };
-
-  const listeDemo = {
-    id: 601,
-    planHebdoId: 501,
-    dateGeneration: maintenant,
-    montantEstime: 12.45,
-    montantReel: null,
-    recettesNonChiffrees: 0,
-    deviseCode: 'CAD',
-    lignes: [
-      { id: 6011, ingredientId: 1, quantite: 600, codeUnite: 'g', prixUnitaire: 0.007, sourcePrix: 'REFERENCE', sousTotal: 4.2, estAchete: false },
-      { id: 6012, ingredientId: 2, quantite: 1, codeUnite: 'piece', prixUnitaire: 0.8, sourcePrix: 'REFERENCE', sousTotal: 0.8, estAchete: false },
-      { id: 6013, ingredientId: 6, quantite: 60, codeUnite: 'ml', prixUnitaire: 0.03, sourcePrix: 'REFERENCE', sousTotal: 1.8, estAchete: true },
-      { id: 6014, ingredientId: 4, quantite: 300, codeUnite: 'g', prixUnitaire: 0.005, sourcePrix: 'REFERENCE', sousTotal: 1.5, estAchete: false },
-      { id: 6015, ingredientId: 3, quantite: 3, codeUnite: 'piece', prixUnitaire: 0.5, sourcePrix: 'REFERENCE', sousTotal: 1.5, estAchete: false },
-      { id: 6016, ingredientId: 5, quantite: 1, codeUnite: 'piece', prixUnitaire: 0.65, sourcePrix: 'REFERENCE', sousTotal: 0.65, estAchete: false },
-      { id: 6017, ingredientId: 7, quantite: 15, codeUnite: 'ml', prixUnitaire: 0.13, sourcePrix: 'REFERENCE', sousTotal: 2.0, estAchete: false }
-    ]
-  };
-
   await ecrire(CLES.UNITES, unites);
   await ecrire(CLES.CATEGORIES, categories);
   await ecrire(CLES.INGREDIENTS, ingredients);
@@ -139,8 +135,10 @@ export async function ensemencerSiVide() {
   await ecrire(CLES.RECETTES, recettes);
   await ecrire(CLES.RECETTES_EXTERNES, []);
   await ecrire(CLES.FAVORIS, []);
-  await ecrire(CLES.PLANS_HEBDO, [planDemo]);
-  await ecrire(CLES.PRIX_REFERENCE, []);
+  // Plus de plan ni de liste de demonstration : le plan vient du serveur
+  // (planGenerator) et la liste est calculee par listeService.
+  await ecrire(CLES.PLANS_HEBDO, []);
+  await ecrire(CLES.PRIX_REFERENCE, prixReference);
   await ecrire(CLES.PRIX_PERSONNALISE, []);
-  await ecrire(CLES.LISTES_COURSES, [listeDemo]);
+  await ecrire(CLES.LISTES_COURSES, []);
 }

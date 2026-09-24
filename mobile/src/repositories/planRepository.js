@@ -39,5 +39,23 @@ export const planRepository = {
     const plans = await lire(CLES.PLANS_HEBDO, []);
     const plan = plans.find((p) => p.id === planHebdoId);
     return plan ? plan.repas : [];
+  },
+
+  // Une case du plan porte soit une recette locale, soit une recette de
+  // l'API, jamais les deux (regle du document v5). On vide donc toujours
+  // l'autre champ.
+  async remplacerRepas(planHebdoId, repasId, recetteId) {
+    const plans = await lire(CLES.PLANS_HEBDO, []);
+    const misAJour = plans.map((plan) =>
+      plan.id !== planHebdoId
+        ? plan
+        : {
+            ...plan,
+            repas: plan.repas.map((r) =>
+              r.id === repasId ? { ...r, recetteId, recetteExterneId: null } : r
+            )
+          }
+    );
+    await ecrire(CLES.PLANS_HEBDO, misAJour);
   }
 };
