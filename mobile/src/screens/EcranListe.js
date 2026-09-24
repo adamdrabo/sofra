@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { coursesRepository } from '../repositories/coursesRepository';
 import { planRepository } from '../repositories/planRepository';
@@ -8,7 +8,9 @@ import { referentielsRepository } from '../repositories/referentielsRepository';
 import { Bouton } from '../components/Bouton';
 import { Carte } from '../components/Carte';
 import { EnteteEcran } from '../components/EnteteEcran';
+import { ModalSaisiePrix } from '../components/ModalSaisiePrix';
 import { Puce } from '../components/Puce';
+import { prixRepository } from '../repositories/prixRepository';
 import { genererListeDuPlan } from '../services/listeService';
 import { couleurs, espacement } from '../theme';
 
@@ -35,8 +37,9 @@ function emojiPourIngredient(nom) {
 }
 
 // Ecran "Liste" : cas d'utilisation "Preparer sa liste d'epicerie" et
-// "Suivre le cout de sa semaine". Affiche la liste de courses du plan
-// courant, et permet de la (re)calculer via listeService.
+// "Suivre le cout de sa semaine". La liste est calculee depuis le plan ;
+// la personne peut cocher ce qu'elle achete, corriger un prix, et
+// enregistrer ce qu'elle a vraiment depense.
 export function EcranListe() {
   const [liste, setListe] = useState(null);
   const [lignes, setLignes] = useState([]);
@@ -45,6 +48,9 @@ export function EcranListe() {
   const [message, setMessage] = useState(null);
   // Change a chaque generation, pour forcer le rechargement de l'ecran.
   const [version, setVersion] = useState(0);
+  // Ligne dont on saisit le prix (null quand la feuille est fermee).
+  const [ligneEnEdition, setLigneEnEdition] = useState(null);
+  const [montantReelSaisi, setMontantReelSaisi] = useState('');
 
   // Calcule la liste a partir du plan courant (service listeService).
   // Seules les recettes locales sont chiffrees : les repas venus de
@@ -146,6 +152,33 @@ export function EcranListe() {
     }, [version])
   );
 
+  // Enregistre un PRIX_PERSONNALISE puis l'applique a la ligne.
+  // Les deux ecritures sont distinctes : le prix appartient a
+  // l'ingredient et resservira pour les prochaines listes, la ligne
+  // n'en garde que le resultat.
+  async function enregistrerPrix({ prix, quantite, magasin }) {
+    const ligne = ligneEnEdition;
+    if (!liste || !ligne) return;
+
+    await prixRepository.ajouterPrixPersonnalise(ligne.ingredientId, prix, quantite, ligne.codeUnite, magasin);
+    await coursesRepository.majPrixLigne(liste.id, ligne.id, prix / quantite, 'PERSONNALISE');
+
+    setLigneEnEdition(null);
+    setVersion((v) => v + 1);
+  }
+
+  async function enregistrerMontantReel() {
+    if (!liste) return;
+    const saisie = montantReelSaisi.trim();
+    // Champ vide : on ne remplace pas montantReel par zero, sinon
+    // l'ecran annoncerait une economie alors que rien n'a ete saisi.
+    if (saisie === '') return;
+    const montant = Number(saisie.replace(',', '.'));
+    if (!Number.isFinite(montant) || montant < 0) return;
+    await coursesRepository.enregistrerMontantReel(liste.id, montant);
+    setVersion((v) => v + 1);
+  }
+
   async function basculerAchete(ligne) {
     if (!liste) return;
     await coursesRepository.cocherLigne(liste.id, ligne.id, !ligne.estAchete);
@@ -162,7 +195,10 @@ export function EcranListe() {
   return (
     <View style={styles.ecran}>
       <ScrollView contentContainerStyle={styles.contenu}>
-        <EnteteEcran titre="🛒 Liste de courses" sousTitre="Pour la semaine en cours" />
+        <EnteteEcran
+          titre="🛒 Liste de courses"
+          sousTitre="Touche pour cocher, appui long pour entrer ton prix"
+        />
 
         {liste ? (
           <Carte style={styles.carteTotal}>
@@ -180,6 +216,27 @@ export function EcranListe() {
             {liste.recettesNonChiffrees > 0 ? (
               <Puce texte={`⚠️ ${liste.recettesNonChiffrees} recette(s) non chiffrée(s)`} />
             ) : null}
+
+            {/* Depense reelle, saisie apres l'epicerie. C'est le seul
+                endroit ou l'estimation et la depense se rencontrent. */}
+            <View style={styles.reelLigne}>
+              <Text style={styles.reelLibelle}>Dépensé en vrai</Text>
+              <TextInput
+                value={montantReelSaisi}
+                onChangeText={setMontantReelSaisi}
+                onBlur={enregistrerMontantReel}
+                keyboardType="decimal-pad"
+                placeholder={liste.montantReel != null ? liste.montantReel.toFixed(2) : '0.00'}
+                style={styles.reelSaisie}
+              />
+            </View>
+            {liste.montantReel != null ? (
+              <Text style={styles.reelEcart}>
+                {liste.montantReel > liste.montantEstime
+                  ? `${(liste.montantReel - liste.montantEstime).toFixed(2)} ${liste.deviseCode} de plus que prévu`
+                  : `${(liste.montantEstime - liste.montantReel).toFixed(2)} ${liste.deviseCode} d'économisé`}
+              </Text>
+            ) : null}
           </Carte>
         ) : null}
 
@@ -196,6 +253,8 @@ export function EcranListe() {
                   <Pressable
                     key={ligne.id}
                     onPress={() => basculerAchete(ligne)}
+                    onLongPress={() => setLigneEnEdition(ligne)}
+                    delayLongPress={350}
                     style={[styles.ligne, index < groupe.lignes.length - 1 && styles.ligneSeparee]}
                   >
                     <Text style={styles.ligneEmoji}>{ligne.emoji}</Text>
@@ -205,6 +264,7 @@ export function EcranListe() {
                       <Text style={styles.ligneQuantite}>
                         {ligne.quantite} {ligne.codeUnite}
                         {ligne.recettesOrigine.length > 1 ? ' · partagé entre recettes' : ''}
+                        {ligne.sourcePrix === 'PERSONNALISE' ? ' · ton prix' : ''}
                       </Text>
                     </View>
 
@@ -234,6 +294,13 @@ export function EcranListe() {
           enChargement={enChargement}
         />
       </ScrollView>
+
+      <ModalSaisiePrix
+        visible={ligneEnEdition != null}
+        ligne={ligneEnEdition}
+        onFermer={() => setLigneEnEdition(null)}
+        onEnregistrerPrix={enregistrerPrix}
+      />
     </View>
   );
 }
@@ -248,6 +315,22 @@ const styles = StyleSheet.create({
   totalTexte: { flex: 1 },
   totalMontant: { fontSize: 24, fontWeight: '700', color: couleurs.primaireFonce },
   totalLegende: { fontSize: 12, color: couleurs.encreDouce },
+
+  reelLigne: { flexDirection: 'row', alignItems: 'center', gap: espacement.sm },
+  reelLibelle: { flex: 1, fontSize: 13, color: couleurs.encreDouce },
+  reelSaisie: {
+    width: 110,
+    borderWidth: 1,
+    borderColor: couleurs.bordure,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 15,
+    textAlign: 'right',
+    color: couleurs.encre,
+    backgroundColor: couleurs.blanc
+  },
+  reelEcart: { fontSize: 12, color: couleurs.primaireFonce },
 
   groupe: { gap: espacement.xs },
   groupeTitre: { fontSize: 14, fontWeight: '700', color: couleurs.encre, paddingLeft: 4 },

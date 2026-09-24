@@ -51,6 +51,24 @@ export const coursesRepository = {
     await ecrire(CLES.LISTES_COURSES, misesAJour);
   },
 
+  // Applique un prix saisi par la personne a une ligne : le sous-total
+  // de la ligne et le montant estime de la liste suivent, sinon le total
+  // affiche ne correspondrait plus a la somme des lignes.
+  async majPrixLigne(listeCoursesId, ligneId, prixUnitaire, sourcePrix) {
+    const listes = await lire(CLES.LISTES_COURSES, []);
+    const misesAJour = listes.map((l) => {
+      if (l.id !== listeCoursesId) return l;
+      const lignes = l.lignes.map((ligne) =>
+        ligne.id === ligneId
+          ? { ...ligne, prixUnitaire, sourcePrix, sousTotal: Math.round(ligne.quantite * prixUnitaire * 100) / 100 }
+          : ligne
+      );
+      const montantEstime = Math.round(lignes.reduce((somme, ligne) => somme + ligne.sousTotal, 0) * 100) / 100;
+      return { ...l, lignes, montantEstime };
+    });
+    await ecrire(CLES.LISTES_COURSES, misesAJour);
+  },
+
   async enregistrerMontantReel(listeCoursesId, montantReel) {
     const listes = await lire(CLES.LISTES_COURSES, []);
     await ecrire(CLES.LISTES_COURSES, listes.map((l) => (l.id === listeCoursesId ? { ...l, montantReel } : l)));
