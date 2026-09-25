@@ -5,7 +5,6 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ensemencerSiVide } from './src/db/seed';
-import { effacerTout } from './src/db/storage';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { couleurs } from './src/theme';
 
@@ -31,10 +30,7 @@ export default function App() {
 
   useEffect(() => {
     Promise.all([
-      // TEMPORAIRE : vide le stockage local pour forcer un nouveau seed.
-      // A RETIRER apres un seul lancement, sinon l'app oublie tout a
-      // chaque ouverture (recettes creees, plan, liste, session).
-      effacerTout().then(() => ensemencerSiVide()),
+      ensemencerSiVide(),
       attendre(DUREE_SPLASH),
     ]).then(() => setPret(true));
   }, []);
