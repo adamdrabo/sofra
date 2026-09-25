@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { couleurs, rayon } from '../theme';
 import { normaliserNom } from '../services/normalisation';
+import { nettoyerNomIngredient, validerNomIngredient } from '../services/validationIngredient';
 import { referentielsRepository } from '../repositories/referentielsRepository';
 import { Bouton } from './Bouton';
 
@@ -27,6 +28,12 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
   }, [visible]);
 
   const nomNormaliseSaisi = useMemo(() => normaliserNom(saisie), [saisie]);
+
+  // Un ingredient cree entre dans le referentiel pour de bon : il sert
+  // de cle de regroupement dans la liste de courses et portera un prix.
+  // On refuse donc les chiffres et les caracteres speciaux avant de le
+  // creer.
+  const validation = useMemo(() => validerNomIngredient(saisie), [saisie]);
 
   const correspondanceExacte = useMemo(
     () => ingredientsConnus.find((i) => i.nomNormalise === nomNormaliseSaisi) ?? null,
@@ -56,10 +63,13 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
   }
 
   async function creerNouveau() {
-    if (!uniteChoisie) return;
+    if (!uniteChoisie || !validation.valide) return;
     // Passe par referentielsRepository : c'est lui qui vérifie
     // nomNormalise avant de vraiment créer une nouvelle ligne.
-    const ingredient = await referentielsRepository.trouverOuCreerIngredient(saisie.trim(), uniteChoisie.codeUniteBase);
+    const ingredient = await referentielsRepository.trouverOuCreerIngredient(
+      nettoyerNomIngredient(saisie),
+      uniteChoisie.codeUniteBase
+    );
     onConfirmer({
       ingredient,
       quantite: Number(quantite) || 1,
@@ -81,6 +91,14 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
             style={styles.champ}
             autoFocus
           />
+
+          {/* Un ingredient deja connu est reutilise tel quel : la
+              validation ne concerne que la creation d'un nouveau nom. */}
+          {!correspondanceExacte && validation.message ? (
+            <View style={styles.avisErreur}>
+              <Text style={styles.avisErreurTexte}>{validation.message}</Text>
+            </View>
+          ) : null}
 
           {correspondanceExacte ? (
             <View style={styles.avisConnu}>
@@ -134,7 +152,7 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
               <Bouton
                 titre="Créer ce nouvel ingrédient"
                 onPress={creerNouveau}
-                desactive={saisie.trim().length === 0 || !uniteChoisie}
+                desactive={!validation.valide || !uniteChoisie}
               />
             )}
             <Bouton titre="Annuler" variante="contour" onPress={onFermer} />
@@ -165,6 +183,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: couleurs.encre
   },
+  avisErreur: {
+    backgroundColor: '#FBE9E2',
+    borderRadius: rayon.carteCompacte,
+    padding: 12
+  },
+  avisErreurTexte: { fontSize: 13, color: couleurs.primaireFonce, lineHeight: 18 },
   avisConnu: {
     backgroundColor: '#EAF3F1',
     borderRadius: rayon.carteCompacte,

@@ -24,6 +24,7 @@ export function EcranNouvelleRecette({ route, navigation }) {
   const [ingredients, setIngredients] = useState([]);
   const [etapes, setEtapes] = useState(['']);
   const [modalOuvert, setModalOuvert] = useState(false);
+  const [erreur, setErreur] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -87,13 +88,59 @@ export function EcranNouvelleRecette({ route, navigation }) {
     setEtapes((prec) => prec.filter((_, i) => i !== index));
   }
 
+  // Validation avant enregistrement. Elle est volontairement differente
+  // de celle du nom d'ingredient : une etape contient normalement des
+  // chiffres ("180 °C", "25 minutes"), on ne peut donc pas les
+  // interdire. On exige plutot du vrai texte, ce qui suffit a rejeter
+  // une saisie du genre "48203u-34-23".
+  //
+  // Renvoie un message d'erreur, ou null si tout est correct.
+  function verifierSaisie() {
+    const nom = nomFr.trim();
+    if (nom.length < 2) return 'Donne un nom à ta recette.';
+    if (!/\p{L}{2,}/u.test(nom)) return 'Le nom de la recette doit être écrit en lettres.';
+
+    const portions = Number(nombrePortions);
+    if (!Number.isInteger(portions) || portions < 1 || portions > 50) {
+      return 'Le nombre de portions doit être un entier entre 1 et 50.';
+    }
+
+    const temps = Number(tempsPreparation);
+    if (!Number.isInteger(temps) || temps < 0 || temps > 1440) {
+      return 'Le temps de préparation doit être en minutes, au maximum 1440.';
+    }
+
+    if (ingredients.length === 0) return 'Ajoute au moins un ingrédient.';
+
+    const etapesRemplies = etapes.map((e) => e.trim()).filter((e) => e.length > 0);
+    if (etapesRemplies.length === 0) return 'Ajoute au moins une étape.';
+
+    // Au moins trois lettres d'affilee quelque part dans l'etape.
+    if (etapesRemplies.some((e) => !/\p{L}{3,}/u.test(e))) {
+      return 'Chaque étape doit être écrite en toutes lettres.';
+    }
+
+    return null;
+  }
+
   async function enregistrer() {
-    if (!categorieId) return;
+    if (!categorieId) {
+      setErreur('Choisis une catégorie.');
+      return;
+    }
+
+    const messageErreur = verifierSaisie();
+    if (messageErreur) {
+      setErreur(messageErreur);
+      return;
+    }
+    setErreur(null);
+
     const donnees = {
       categorieId,
       nomFr: nomFr.trim(),
-      nombrePortions: Number(nombrePortions) || 1,
-      tempsPreparation: Number(tempsPreparation) || 0,
+      nombrePortions: Number(nombrePortions),
+      tempsPreparation: Number(tempsPreparation),
       ingredients: ingredients.map((i) => ({
         ingredientId: i.ingredientId,
         quantite: i.quantite,
@@ -205,6 +252,14 @@ export function EcranNouvelleRecette({ route, navigation }) {
         <Bouton titre="Ajouter une étape" variante="contour" onPress={ajouterEtape} />
       </View>
 
+      {/* Message affiche seulement apres une tentative d'enregistrement :
+          on ne reproche rien a quelqu'un qui est encore en train de taper. */}
+      {erreur ? (
+        <View style={styles.avisErreur}>
+          <Text style={styles.avisErreurTexte}>{erreur}</Text>
+        </View>
+      ) : null}
+
       <Bouton titre="Enregistrer la recette" onPress={enregistrer} desactive={nomFr.trim().length === 0} />
 
       <ModalNormalisationIngredient
@@ -231,6 +286,8 @@ const styles = StyleSheet.create({
     color: couleurs.encre
   },
   texteVide: { fontSize: 14, color: couleurs.encreDouce, textAlign: 'center' },
+  avisErreur: { backgroundColor: '#FBE9E2', borderRadius: rayon.carteCompacte, padding: 12 },
+  avisErreurTexte: { fontSize: 13, color: couleurs.primaireFonce, lineHeight: 18 },
   ligneIngredient: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
   avecSeparateur: { borderBottomWidth: 1, borderColor: couleurs.separateur },
   ingredientNom: { flex: 1, fontSize: 15, color: couleurs.encre },
