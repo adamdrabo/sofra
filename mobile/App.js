@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ensemencerSiVide } from './src/db/seed';
+import { preferenceRepository } from './src/repositories/preferenceRepository';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { couleurs } from './src/theme';
 
@@ -23,19 +24,22 @@ function EcranOuverture() {
   );
 }
 
-// Point d'entrée de l'application : on initialise le stockage local
-// tout en affichant l'écran d'ouverture pendant 3 secondes.
+// Point d'entrée de l'application : pendant l'écran d'ouverture, on
+// initialise le stockage local et on décide du premier écran
+// (accueil en 3 étapes au premier lancement, onglets ensuite).
 export default function App() {
-  const [pret, setPret] = useState(false);
+  const [ecranInitial, setEcranInitial] = useState(null);
 
   useEffect(() => {
     Promise.all([
-      ensemencerSiVide(),
+      ensemencerSiVide().then(() => preferenceRepository.obtenir()),
       attendre(DUREE_SPLASH),
-    ]).then(() => setPret(true));
+    ]).then(([preference]) => {
+      setEcranInitial(preference.onboardingTermine ? 'Onglets' : 'OnboardingPersonnes');
+    });
   }, []);
 
-  if (!pret) {
+  if (!ecranInitial) {
     return <EcranOuverture />;
   }
 
@@ -43,7 +47,7 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="dark" backgroundColor={couleurs.fondEcran} />
       <NavigationContainer>
-        <AppNavigator />
+        <AppNavigator ecranInitial={ecranInitial} />
       </NavigationContainer>
     </SafeAreaProvider>
   );
