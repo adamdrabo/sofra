@@ -8,6 +8,8 @@ import { EnteteEcran } from '../components/EnteteEcran';
 import { couleurs, rayon } from '../theme';
 import { referentielsRepository } from '../repositories/referentielsRepository';
 import { recetteRepository } from '../repositories/recetteRepository';
+import { publierRecetteLocale } from '../services/communauteService';
+import { sessionService } from '../services/sessionService';
 
 // Fiche recette (cas d'utilisation "Créer une recette" / "Adapter une
 // recette"). Lit le vrai stockage local (AsyncStorage).
@@ -16,6 +18,8 @@ export function EcranFicheRecette({ route, navigation }) {
   const [recette, setRecette] = useState(null);
   const [ingredients, setIngredients] = useState([]);
   const [chargement, setChargement] = useState(true);
+  const [publication, setPublication] = useState(false);
+  const [avis, setAvis] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -37,6 +41,32 @@ export function EcranFicheRecette({ route, navigation }) {
     }, [id])
   );
 
+  // Publier est le seul cas d'utilisation qui exige un compte. Sans
+  // session, on renvoie vers l'onglet Compte plutot que d'afficher une
+  // erreur technique.
+  async function publier() {
+    setAvis(null);
+
+    if (!(await sessionService.estConnecte())) {
+      setAvis({
+        type: 'info',
+        texte: 'Publier demande un compte. Crée-le dans l’onglet Compte, puis reviens ici.',
+        versCompte: true
+      });
+      return;
+    }
+
+    setPublication(true);
+    try {
+      await publierRecetteLocale(id);
+      setAvis({ type: 'succes', texte: 'Recette publiée. Elle apparaît maintenant dans le fil de la communauté.' });
+    } catch (e) {
+      setAvis({ type: 'erreur', texte: e instanceof Error ? e.message : 'Erreur inconnue' });
+    } finally {
+      setPublication(false);
+    }
+  }
+
   if (chargement) return null;
 
   if (!recette) {
@@ -54,7 +84,7 @@ export function EcranFicheRecette({ route, navigation }) {
   return (
     <View style={styles.ecran}>
       <EnteteEcran titre={recette.nomFr} sousTitre="Détails de la recette" onRetour={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 22 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 22, paddingBottom: 60 }}>
       <View style={styles.vignette}>
         <Text style={{ fontSize: 56 }}>{recette.emoji ?? '🍽️'}</Text>
       </View>
@@ -64,6 +94,7 @@ export function EcranFicheRecette({ route, navigation }) {
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           <Puce texte={`${recette.tempsPreparation} min`} />
           <Puce texte={`${recette.nombrePortions} portions`} />
+          {recette.origineCommunaute ? <Puce texte="Adaptée de la communauté" /> : null}
         </View>
       </View>
 
@@ -71,6 +102,26 @@ export function EcranFicheRecette({ route, navigation }) {
         titre="Modifier cette recette"
         onPress={() => navigation.navigate('NouvelleRecette', { id: recette.id })}
       />
+
+      <Bouton
+        titre="Publier dans la communauté"
+        variante="contour"
+        onPress={publier}
+        enChargement={publication}
+      />
+
+      {avis ? (
+        <View style={[styles.avis, avis.type === 'succes' ? styles.avisSucces : styles.avisAttention]}>
+          <Text style={styles.avisTexte}>{avis.texte}</Text>
+          {avis.versCompte ? (
+            <Bouton
+              titre="Aller à mon compte"
+              variante="contour"
+              onPress={() => navigation.navigate('Onglets', { screen: 'Compte' })}
+            />
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={{ gap: 8 }}>
         <Text style={styles.sectionTitre}>Ingrédients</Text>
@@ -118,6 +169,10 @@ const styles = StyleSheet.create({
   },
   sousTitre: { fontSize: 14, color: couleurs.encreDouce },
   sectionTitre: { fontSize: 17, fontWeight: '600', color: couleurs.encre },
+  avis: { borderRadius: rayon.carteCompacte, padding: 14, gap: 10 },
+  avisSucces: { backgroundColor: '#EAF3F1' },
+  avisAttention: { backgroundColor: '#FBE9E2' },
+  avisTexte: { fontSize: 13, color: couleurs.encre, lineHeight: 18 },
   ligneIngredient: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 11 },
   avecSeparateur: { borderBottomWidth: 1, borderColor: couleurs.separateur },
   ingredientNom: { fontSize: 15, color: couleurs.encre },
