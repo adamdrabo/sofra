@@ -3,64 +3,103 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { useFocusEffect } from '@react-navigation/native';
 import { coursesRepository } from '../repositories/coursesRepository';
 import { planRepository } from '../repositories/planRepository';
-import { recetteRepository } from '../repositories/recetteRepository';
+import { prixRepository } from '../repositories/prixRepository';
 import { referentielsRepository } from '../repositories/referentielsRepository';
 import { Bouton } from '../components/Bouton';
 import { Carte } from '../components/Carte';
 import { EnteteEcran } from '../components/EnteteEcran';
-import { ModalSaisiePrix } from '../components/ModalSaisiePrix';
-import { Puce } from '../components/Puce';
-import { prixRepository } from '../repositories/prixRepository';
+import { ModalLigneCourses } from '../components/ModalLigneCourses';
+import { ModalNormalisationIngredient } from '../components/ModalNormalisationIngredient';
+import { RAYONS, rayonPourIngredient } from '../constants/rayons';
+import { obtenirPrixRetenu } from '../services/coutService';
 import { genererListeDuPlan } from '../services/listeService';
 import { couleurs, espacement } from '../theme';
 
-// Associe un emoji a un ingredient a partir de mots-cles dans son nom.
-// Purement decoratif : si aucun mot-cle ne correspond, on retombe sur
-// le panier 🛒.
-const EMOJI_PAR_MOT_CLE = [
-  [['boeuf', 'bœuf', 'poulet', 'viande'], '🥩'],
-  [['oignon', 'ail'], '🧅'],
-  [['tomate'], '🍅'],
-  [['riz'], '🍚'],
-  [['huile'], '🫒'],
-  [['sel', 'poivre', 'epice', 'épice'], '🧂'],
-  [['carotte'], '🥕'],
-  [['lait', 'creme', 'crème', 'fromage'], '🧀'],
-  [['oeuf', 'œuf'], '🥚'],
-  [['pain'], '🍞']
-];
-
-function emojiPourIngredient(nom) {
-  const nomMinuscule = nom.toLowerCase();
-  const trouve = EMOJI_PAR_MOT_CLE.find(([motsCles]) => motsCles.some((mot) => nomMinuscule.includes(mot)));
-  return trouve ? trouve[1] : '🛒';
-}
-
-// Ecran "Liste" : cas d'utilisation "Preparer sa liste d'epicerie" et
-// "Suivre le cout de sa semaine". La liste est calculee depuis le plan ;
-// la personne peut cocher ce qu'elle achete, corriger un prix, et
-// enregistrer ce qu'elle a vraiment depense.
+// Ecran "Liste" : cas d'utilisation "Préparer sa liste d'épicerie" et
+// "Suivre le coût de sa semaine".
+//
+// Les lignes viennent du plan (calculées par listeService), mais la
+// personne garde la main : elle coche ce qu'elle achète, corrige une
+// quantité ou une unité, saisit le prix payé, ajoute un article oublié
+// et enregistre ce qu'elle a vraiment dépensé.
+//
+// Le regroupement se fait par rayon d'épicerie et non par recette :
+// devant l'étalage, on cherche « les légumes », pas « le mafé ».
 export function EcranListe() {
+  const [plan, setPlan] = useState(null);
   const [liste, setListe] = useState(null);
   const [lignes, setLignes] = useState([]);
   const [groupes, setGroupes] = useState([]);
+  const [unites, setUnites] = useState([]);
   const [enChargement, setEnChargement] = useState(false);
   const [message, setMessage] = useState(null);
-  // Change a chaque generation, pour forcer le rechargement de l'ecran.
+  // Change a chaque ecriture, pour forcer le rechargement de l'ecran.
   const [version, setVersion] = useState(0);
-  // Ligne dont on saisit le prix (null quand la feuille est fermee).
   const [ligneEnEdition, setLigneEnEdition] = useState(null);
+  const [ajoutOuvert, setAjoutOuvert] = useState(false);
   const [montantReelSaisi, setMontantReelSaisi] = useState('');
 
-  // Calcule la liste a partir du plan courant (service listeService).
-  // Seules les recettes locales sont chiffrees : les repas venus de
-  // l'API sont comptes a part, la licence interdisant de conserver
-  // leurs ingredients.
+  useFocusEffect(
+    useCallback(() => {
+      let annule = false;
+      (async () => {
+        const [dernierPlan, listeUnites, ingredients] = await Promise.all([
+          planRepository.obtenirDernierPlan(),
+          referentielsRepository.listerUnites(),
+          referentielsRepository.listerIngredients()
+        ]);
+        if (annule) return;
+        setUnites(listeUnites);
+        setPlan(dernierPlan);
+
+        if (!dernierPlan) {
+          setListe(null);
+          setLignes([]);
+          setGroupes([]);
+          return;
+        }
+
+        const listeCourante = await coursesRepository.obtenirParPlan(dernierPlan.id);
+        if (annule) return;
+        setListe(listeCourante);
+
+        if (!listeCourante) {
+          setLignes([]);
+          setGroupes([]);
+          return;
+        }
+
+        // Les lignes ne portent que l'id de l'ingredient (pas de
+        // jointure dans un stockage cle-valeur) : le nom affichable et
+        // le rayon sont resolus ici, a l'affichage.
+        const lignesCompletes = listeCourante.lignes.map((ligne) => {
+          const ingredient = ingredients.find((i) => i.id === ligne.ingredientId);
+          return {
+            ...ligne,
+            nom: ingredient ? ingredient.nomFr : 'Ingrédient',
+            rayon: rayonPourIngredient(ingredient)
+          };
+        });
+        setLignes(lignesCompletes);
+
+        // Une section par rayon, dans l'ordre du magasin. Les rayons
+        // sans article ne sont pas affiches.
+        setGroupes(
+          RAYONS.map((r) => ({ ...r, lignes: lignesCompletes.filter((l) => l.rayon === r.code) })).filter(
+            (r) => r.lignes.length > 0
+          )
+        );
+      })();
+      return () => {
+        annule = true;
+      };
+    }, [version])
+  );
+
   async function genererListe() {
     setEnChargement(true);
     setMessage(null);
     try {
-      const plan = await planRepository.obtenirDernierPlan();
       if (!plan) {
         setMessage("Génère d'abord un plan dans l'onglet Semaine.");
         return;
@@ -69,7 +108,7 @@ export function EcranListe() {
       setMessage(
         resultat.repasChiffres === 0
           ? "Aucun repas du plan ne vient de tes recettes. Fais un appui long sur un repas de la semaine pour le remplacer par une des tiennes."
-          : `Liste calculée à partir de ${resultat.repasChiffres} repas sur ${resultat.totalRepas}.`
+          : null
       );
       setVersion((v) => v + 1);
     } catch (e) {
@@ -79,91 +118,60 @@ export function EcranListe() {
     }
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      let annule = false;
-      (async () => {
-        const plan = await planRepository.obtenirDernierPlan();
-        if (!plan || annule) return;
-
-        const listeCourante = await coursesRepository.obtenirParPlan(plan.id);
-        if (annule) return;
-        setListe(listeCourante);
-        if (!listeCourante) {
-          setLignes([]);
-          setGroupes([]);
-          return;
-        }
-
-        // Les lignes ne portent que l'id de l'ingredient (pas de
-        // jointure dans un stockage cle-valeur) : on resout le nom
-        // affichable ici, cote ecran, via le referentiel.
-        const [lignesBrutes, ingredients, repas] = await Promise.all([
-          coursesRepository.listerLignes(listeCourante.id),
-          referentielsRepository.listerIngredients(),
-          planRepository.listerRepas(plan.id)
-        ]);
-        if (annule) return;
-
-        // Association ingredient -> recette(s) : on recupere les
-        // recettes du plan et on regarde lesquelles utilisent chaque
-        // ingredient, pour pouvoir grouper l'affichage par recette.
-        // Un ingredient peut venir de plusieurs recettes a la fois
-        // (ex. oignon dans deux plats).
-        const idsRecettesUniques = [...new Set(repas.map((r) => r.recetteId).filter(Boolean))];
-        const recettes = (await Promise.all(idsRecettesUniques.map((id) => recetteRepository.obtenirParId(id)))).filter(
-          Boolean
-        );
-
-        const recettesParIngredient = new Map();
-        recettes.forEach((recette) => {
-          recette.ingredients.forEach((ing) => {
-            const recettesDejaVues = recettesParIngredient.get(ing.ingredientId) ?? [];
-            if (!recettesDejaVues.some((r) => r.id === recette.id)) recettesDejaVues.push(recette);
-            recettesParIngredient.set(ing.ingredientId, recettesDejaVues);
-          });
-        });
-
-        const lignesAvecNom = lignesBrutes.map((ligne) => {
-          const ingredient = ingredients.find((i) => i.id === ligne.ingredientId);
-          const nom = ingredient ? ingredient.nomFr : 'Ingrédient';
-          const recettesOrigine = recettesParIngredient.get(ligne.ingredientId) ?? [];
-          return { ...ligne, nom, emoji: emojiPourIngredient(nom), recettesOrigine };
-        });
-        setLignes(lignesAvecNom);
-
-        // Regroupement par recette d'origine (une section par recette,
-        // + "Autres ingrédients" pour ce qui n'est rattaché a aucune
-        // recette connue, ex. ajoute a la main).
-        const sections = recettes.map((recette) => ({
-          cle: String(recette.id),
-          titre: `${recette.emoji ?? '🍽️'} ${recette.nomFr}`,
-          lignes: lignesAvecNom.filter((l) => l.recettesOrigine.some((r) => r.id === recette.id))
-        }));
-        const sansRecette = lignesAvecNom.filter((l) => l.recettesOrigine.length === 0);
-        if (sansRecette.length > 0) {
-          sections.push({ cle: 'autres', titre: '🧺 Autres ingrédients', lignes: sansRecette });
-        }
-        setGroupes(sections.filter((s) => s.lignes.length > 0));
-      })();
-      return () => {
-        annule = true;
-      };
-    }, [version])
-  );
-
-  // Enregistre un PRIX_PERSONNALISE puis l'applique a la ligne.
-  // Les deux ecritures sont distinctes : le prix appartient a
-  // l'ingredient et resservira pour les prochaines listes, la ligne
-  // n'en garde que le resultat.
-  async function enregistrerPrix({ prix, quantite, magasin }) {
+  // Modification d'une ligne : quantite, unite, et prix si la personne
+  // en a saisi un. Le prix est enregistre a part, sur l'ingredient :
+  // il resservira aux prochaines listes.
+  async function enregistrerLigne({ quantite, codeUnite, facteurVersBase, prix }) {
     const ligne = ligneEnEdition;
     if (!liste || !ligne) return;
 
-    await prixRepository.ajouterPrixPersonnalise(ligne.ingredientId, prix, quantite, ligne.codeUnite, magasin);
-    await coursesRepository.majPrixLigne(liste.id, ligne.id, prix / quantite, 'PERSONNALISE');
+    const champs = { quantite, codeUnite, facteurVersBase };
 
+    if (prix) {
+      await prixRepository.ajouterPrixPersonnalise(ligne.ingredientId, prix.prix, prix.quantite, codeUnite, prix.magasin);
+      // Le prix est stocke par unite de BASE : un prix saisi au kilo
+      // doit donc etre ramene au gramme avant d'etre enregistre.
+      champs.prixUnitaire = prix.prix / prix.quantite / (facteurVersBase || 1);
+      champs.sourcePrix = 'PERSONNALISE';
+    }
+
+    await coursesRepository.majLigne(liste.id, ligne.id, champs);
     setLigneEnEdition(null);
+    setVersion((v) => v + 1);
+  }
+
+  async function supprimerLigne(ligne) {
+    if (!liste) return;
+    await coursesRepository.supprimerLigne(liste.id, ligne.id);
+    setLigneEnEdition(null);
+    setVersion((v) => v + 1);
+  }
+
+  // Article ajoute a la main. Il reutilise le meme modal que la
+  // creation de recette : la normalisation des noms d'ingredients est
+  // la meme partout dans l'application.
+  async function ajouterArticle(choix) {
+    setAjoutOuvert(false);
+    if (!liste) return;
+
+    const unite = unites.find((u) => u.code === choix.codeUnite);
+    const { prixUnitaire, sourcePrix } = await obtenirPrixRetenu(choix.ingredient.id);
+
+    // Garde-fou : si l'unite choisie n'est pas de la meme famille que
+    // celle qui sert au prix (des kilos pour un ingredient chiffre a la
+    // piece), aucune conversion n'est possible. On garde la quantite
+    // telle quelle et on ne chiffre pas la ligne, plutot que d'afficher
+    // un montant multiplie par mille.
+    const compatible = unite?.codeUniteBase === choix.ingredient.codeUniteBase;
+
+    await coursesRepository.ajouterLigne(liste.id, {
+      ingredientId: choix.ingredient.id,
+      quantite: choix.quantite,
+      codeUnite: choix.codeUnite,
+      facteurVersBase: compatible ? unite.facteurVersBase : 1,
+      prixUnitaire: compatible ? prixUnitaire : 0,
+      sourcePrix: compatible ? sourcePrix : 'AUCUN'
+    });
     setVersion((v) => v + 1);
   }
 
@@ -187,106 +195,88 @@ export function EcranListe() {
     setGroupes((prec) => prec.map((g) => ({ ...g, lignes: g.lignes.map(bascule) })));
   }
 
-  const articlesRestants = lignes.filter((l) => !l.estAchete).length;
-  // Montant qui reste a depenser : le total estime moins ce qui est
-  // deja coche comme achete.
+  const articlesCoches = lignes.filter((l) => l.estAchete).length;
   const montantRestant = lignes.reduce((somme, l) => (l.estAchete ? somme : somme + l.sousTotal), 0);
+
+  // "Semaine du 14 au 20 septembre", a partir de la date de debut du
+  // plan : sept jours, du premier au septieme inclus.
+  function semaineAffichee() {
+    if (!plan?.dateDebut) return null;
+    const debut = new Date(plan.dateDebut);
+    const fin = new Date(debut);
+    fin.setDate(fin.getDate() + 6);
+    return `Semaine du ${debut.getDate()} au ${fin.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })}`;
+  }
+
+  const repasCouverts = plan && liste ? plan.repas.length - liste.recettesNonChiffrees : 0;
 
   return (
     <View style={styles.ecran}>
-      <ScrollView contentContainerStyle={styles.contenu}>
+      <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
         <EnteteEcran
-          titre="🛒 Liste de courses"
-          sousTitre="Touche pour cocher, appui long pour entrer ton prix"
+          titre="Liste d'épicerie"
+          sousTitre={
+            liste
+              ? `${semaineAffichee() ?? 'Semaine en cours'} · ${articlesCoches} sur ${lignes.length} articles cochés`
+              : 'Pour la semaine en cours'
+          }
         />
 
         {liste ? (
-          <Carte style={styles.carteTotal}>
-            <View style={styles.totalLigne}>
-              <Text style={styles.totalEmoji}>🧺</Text>
-              <View style={styles.totalTexte}>
-                <Text style={styles.totalMontant}>{montantRestant.toFixed(2)} {liste.deviseCode}</Text>
-                <Text style={styles.totalLegende}>
-                  {articlesRestants > 0
-                    ? `à acheter · sur ${liste.montantEstime.toFixed(2)} ${liste.deviseCode} au total`
-                    : 'Tout est dans le panier ! 🎉'}
-                </Text>
-              </View>
-            </View>
-            {liste.recettesNonChiffrees > 0 ? (
-              <Puce texte={`⚠️ ${liste.recettesNonChiffrees} recette(s) non chiffrée(s)`} />
-            ) : null}
-
-            {/* Depense reelle, saisie apres l'epicerie. C'est le seul
-                endroit ou l'estimation et la depense se rencontrent. */}
-            <View style={styles.reelLigne}>
-              <Text style={styles.reelLibelle}>Dépensé en vrai</Text>
-              <TextInput
-                value={montantReelSaisi}
-                onChangeText={setMontantReelSaisi}
-                onBlur={enregistrerMontantReel}
-                keyboardType="decimal-pad"
-                placeholder={liste.montantReel != null ? liste.montantReel.toFixed(2) : '0.00'}
-                style={styles.reelSaisie}
-              />
-            </View>
-            {liste.montantReel != null ? (
-              <Text style={styles.reelEcart}>
-                {liste.montantReel > liste.montantEstime
-                  ? `${(liste.montantReel - liste.montantEstime).toFixed(2)} ${liste.deviseCode} de plus que prévu`
-                  : `${(liste.montantEstime - liste.montantReel).toFixed(2)} ${liste.deviseCode} d'économisé`}
-              </Text>
-            ) : null}
-          </Carte>
+          <Text style={styles.origine}>Générée depuis Ma semaine · appui long sur un article pour le modifier</Text>
         ) : null}
+
+        {groupes.map((groupe) => (
+          <View key={groupe.code} style={styles.groupe}>
+            <Text style={styles.groupeTitre}>
+              {groupe.emoji} {groupe.libelle}
+            </Text>
+            <Carte style={styles.carte}>
+              {groupe.lignes.map((ligne, index) => (
+                <Pressable
+                  key={ligne.id}
+                  onPress={() => basculerAchete(ligne)}
+                  onLongPress={() => setLigneEnEdition(ligne)}
+                  delayLongPress={350}
+                  style={[styles.ligne, index < groupe.lignes.length - 1 && styles.ligneSeparee]}
+                >
+                  <View style={[styles.rond, ligne.estAchete && styles.rondCoche]}>
+                    {ligne.estAchete ? <Text style={styles.rondTexte}>✓</Text> : null}
+                  </View>
+
+                  <View style={styles.ligneTexte}>
+                    <Text style={[styles.ligneNom, ligne.estAchete && styles.texteAchete]}>{ligne.nom}</Text>
+                    <Text style={styles.ligneDetail}>
+                      {ligne.sourcePrix === 'AUCUN' ? 'prix indisponible' : `${ligne.sousTotal.toFixed(2)} $`}
+                      {ligne.sourcePrix === 'PERSONNALISE' ? ' · ton prix' : ''}
+                      {ligne.provenance === 'MANUELLE' ? ' · ajouté' : ''}
+                    </Text>
+                  </View>
+
+                  <Text style={[styles.ligneQuantite, ligne.estAchete && styles.texteAchete]}>
+                    {ligne.quantite} {ligne.codeUnite}
+                  </Text>
+                </Pressable>
+              ))}
+            </Carte>
+          </View>
+        ))}
 
         {lignes.length === 0 ? (
           <Carte style={styles.carte}>
-            <Text style={styles.videTexte}>🍽️ Génère d'abord un plan pour voir ta liste.</Text>
+            <Text style={styles.videTexte}>
+              {plan ? 'Génère ta liste à partir du plan de la semaine.' : "Crée d'abord un plan dans l'onglet Semaine."}
+            </Text>
           </Carte>
-        ) : (
-          groupes.map((groupe) => (
-            <View key={groupe.cle} style={styles.groupe}>
-              <Text style={styles.groupeTitre}>{groupe.titre}</Text>
-              <Carte style={styles.carte}>
-                {groupe.lignes.map((ligne, index) => (
-                  <Pressable
-                    key={ligne.id}
-                    onPress={() => basculerAchete(ligne)}
-                    onLongPress={() => setLigneEnEdition(ligne)}
-                    delayLongPress={350}
-                    style={[styles.ligne, index < groupe.lignes.length - 1 && styles.ligneSeparee]}
-                  >
-                    <Text style={styles.ligneEmoji}>{ligne.emoji}</Text>
-
-                    <View style={styles.ligneTexte}>
-                      <Text style={[styles.ligneNom, ligne.estAchete && styles.texteAchete]}>{ligne.nom}</Text>
-                      <Text style={styles.ligneQuantite}>
-                        {ligne.quantite} {ligne.codeUnite}
-                        {ligne.recettesOrigine.length > 1 ? ' · partagé entre recettes' : ''}
-                        {ligne.sourcePrix === 'PERSONNALISE' ? ' · ton prix' : ''}
-                      </Text>
-                    </View>
-
-                    <Text style={[styles.lignePrix, ligne.estAchete && styles.texteAchete]}>
-                      {ligne.sousTotal.toFixed(2)} $
-                    </Text>
-
-                    <View style={[styles.rond, ligne.estAchete && styles.rondCoche]}>
-                      {ligne.estAchete ? <Text style={styles.rondTexte}>✓</Text> : null}
-                    </View>
-                  </Pressable>
-                ))}
-              </Carte>
-            </View>
-          ))
-        )}
+        ) : null}
 
         {message ? (
           <Carte style={styles.carte}>
             <Text style={styles.videTexte}>{message}</Text>
           </Carte>
         ) : null}
+
+        {liste ? <Bouton titre="Ajouter un article" variante="contour" onPress={() => setAjoutOuvert(true)} /> : null}
 
         <Bouton
           titre={liste ? 'Regénérer ma liste' : 'Générer ma liste'}
@@ -295,11 +285,57 @@ export function EcranListe() {
         />
       </ScrollView>
 
-      <ModalSaisiePrix
+      {/* Pied fixe : le total suit la personne pendant qu'elle fait
+          ses courses, sans avoir a redescendre la liste. */}
+      {liste ? (
+        <View style={styles.pied}>
+          <View style={styles.piedLigne}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.piedTitre}>Total estimé</Text>
+              <Text style={styles.piedLegende}>
+                Couvre {repasCouverts} repas sur {plan?.repas.length ?? 0} · prix indicatifs, Montréal
+              </Text>
+            </View>
+            <Text style={styles.piedMontant}>
+              {montantRestant.toFixed(2)} {liste.deviseCode}
+            </Text>
+          </View>
+
+          <View style={styles.piedLigne}>
+            <Text style={styles.piedLegende}>Dépensé en vrai</Text>
+            <TextInput
+              value={montantReelSaisi}
+              onChangeText={setMontantReelSaisi}
+              onBlur={enregistrerMontantReel}
+              keyboardType="decimal-pad"
+              placeholder={liste.montantReel != null ? liste.montantReel.toFixed(2) : '0.00'}
+              style={styles.reelSaisie}
+            />
+          </View>
+
+          {liste.montantReel != null ? (
+            <Text style={styles.piedEcart}>
+              {liste.montantReel > liste.montantEstime
+                ? `${(liste.montantReel - liste.montantEstime).toFixed(2)} ${liste.deviseCode} de plus que prévu`
+                : `${(liste.montantEstime - liste.montantReel).toFixed(2)} ${liste.deviseCode} d'économisé`}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      <ModalLigneCourses
         visible={ligneEnEdition != null}
         ligne={ligneEnEdition}
+        unites={unites}
         onFermer={() => setLigneEnEdition(null)}
-        onEnregistrerPrix={enregistrerPrix}
+        onEnregistrer={enregistrerLigne}
+        onSupprimer={supprimerLigne}
+      />
+
+      <ModalNormalisationIngredient
+        visible={ajoutOuvert}
+        onFermer={() => setAjoutOuvert(false)}
+        onConfirmer={ajouterArticle}
       />
     </View>
   );
@@ -307,17 +343,51 @@ export function EcranListe() {
 
 const styles = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: couleurs.fondEcran },
-  contenu: { padding: espacement.md, gap: espacement.md, paddingBottom: espacement.xl },
+  contenu: { padding: espacement.md, gap: espacement.md, paddingBottom: 200 },
+  origine: { fontSize: 12, color: couleurs.encreDouce, marginTop: -6 },
 
-  carteTotal: { paddingVertical: espacement.md, gap: espacement.sm, backgroundColor: couleurs.fondDegrade, borderColor: couleurs.primaire },
-  totalLigne: { flexDirection: 'row', alignItems: 'center', gap: espacement.sm },
-  totalEmoji: { fontSize: 32 },
-  totalTexte: { flex: 1 },
-  totalMontant: { fontSize: 24, fontWeight: '700', color: couleurs.primaireFonce },
-  totalLegende: { fontSize: 12, color: couleurs.encreDouce },
+  groupe: { gap: espacement.xs },
+  groupeTitre: { fontSize: 13, fontWeight: '700', color: couleurs.encreDouce, paddingLeft: 4 },
+  carte: { paddingVertical: espacement.sm },
+  videTexte: { fontSize: 14, color: couleurs.encreDouce, textAlign: 'center', paddingVertical: espacement.lg },
 
-  reelLigne: { flexDirection: 'row', alignItems: 'center', gap: espacement.sm },
-  reelLibelle: { flex: 1, fontSize: 13, color: couleurs.encreDouce },
+  ligne: { flexDirection: 'row', alignItems: 'center', gap: espacement.sm, paddingVertical: espacement.sm },
+  ligneSeparee: { borderBottomWidth: 1, borderColor: couleurs.separateur },
+  ligneTexte: { flex: 1 },
+  ligneNom: { fontSize: 15, fontWeight: '600', color: couleurs.encre },
+  ligneDetail: { fontSize: 12, color: couleurs.encreDouce, marginTop: 2 },
+  ligneQuantite: { fontSize: 13, color: couleurs.encreDouce },
+  texteAchete: { color: couleurs.encreDouce, textDecorationLine: 'line-through' },
+
+  rond: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: couleurs.bordure,
+    backgroundColor: couleurs.blanc,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  rondCoche: { backgroundColor: couleurs.primaire, borderColor: couleurs.primaire },
+  rondTexte: { color: couleurs.blanc, fontSize: 13, fontWeight: '700' },
+
+  pied: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: couleurs.blanc,
+    borderTopWidth: 1,
+    borderColor: couleurs.bordure,
+    padding: espacement.md,
+    gap: 8
+  },
+  piedLigne: { flexDirection: 'row', alignItems: 'center', gap: espacement.sm },
+  piedTitre: { fontSize: 15, fontWeight: '700', color: couleurs.encre },
+  piedLegende: { flex: 1, fontSize: 12, color: couleurs.encreDouce },
+  piedMontant: { fontSize: 22, fontWeight: '800', color: couleurs.encre },
+  piedEcart: { fontSize: 12, color: couleurs.primaireFonce },
   reelSaisie: {
     width: 110,
     borderWidth: 1,
@@ -328,34 +398,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'right',
     color: couleurs.encre,
-    backgroundColor: couleurs.blanc
-  },
-  reelEcart: { fontSize: 12, color: couleurs.primaireFonce },
-
-  groupe: { gap: espacement.xs },
-  groupeTitre: { fontSize: 14, fontWeight: '700', color: couleurs.encre, paddingLeft: 4 },
-  carte: { paddingVertical: espacement.sm },
-  videTexte: { fontSize: 14, color: couleurs.encreDouce, textAlign: 'center', paddingVertical: espacement.lg },
-
-  ligne: { flexDirection: 'row', alignItems: 'center', gap: espacement.sm, paddingVertical: espacement.sm },
-  ligneSeparee: { borderBottomWidth: 1, borderColor: couleurs.separateur },
-  ligneEmoji: { fontSize: 22 },
-  ligneTexte: { flex: 1 },
-  ligneNom: { fontSize: 14, fontWeight: '600', color: couleurs.encre },
-  ligneQuantite: { fontSize: 12, color: couleurs.encreDouce },
-  lignePrix: { fontSize: 14, fontWeight: '600', color: couleurs.encre },
-  texteAchete: { color: couleurs.encreDouce, textDecorationLine: 'line-through' },
-
-  rond: {
-    width: 24,
-    height: 24,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: couleurs.bordure,
-    backgroundColor: couleurs.blanc,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  rondCoche: { backgroundColor: couleurs.primaire, borderColor: couleurs.primaire },
-  rondTexte: { color: couleurs.blanc, fontSize: 12, fontWeight: '700' }
+    backgroundColor: couleurs.fondEcran
+  }
 });

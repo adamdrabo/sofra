@@ -40,6 +40,24 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
     [ingredientsConnus, nomNormaliseSaisi]
   );
 
+  // Un ingredient connu est chiffre dans son unite de base : la tomate
+  // a la piece, le riz au gramme. Proposer les kilos pour une tomate
+  // multiplierait son prix par mille. On limite donc aux unites de la
+  // meme famille des qu'on sait de quel ingredient il s'agit.
+  const unitesProposees = useMemo(() => {
+    if (!correspondanceExacte) return unites;
+    return unites.filter((u) => u.codeUniteBase === correspondanceExacte.codeUniteBase);
+  }, [unites, correspondanceExacte]);
+
+  useEffect(() => {
+    if (unitesProposees.length === 0) return;
+    // L'unite choisie avant de reconnaitre l'ingredient peut ne plus
+    // etre permise : on retombe sur la premiere compatible.
+    if (!unitesProposees.some((u) => u.code === uniteChoisie?.code)) {
+      setUniteChoisie(unitesProposees[0]);
+    }
+  }, [unitesProposees, uniteChoisie]);
+
   const suggestions = useMemo(() => {
     if (!saisie.trim()) return [];
     return ingredientsConnus
@@ -128,7 +146,7 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
             />
             <FlatList
               horizontal
-              data={unites}
+              data={unitesProposees}
               keyExtractor={(u) => u.code}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 8, paddingLeft: 8 }}

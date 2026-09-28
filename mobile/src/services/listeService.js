@@ -13,16 +13,20 @@ import { calculerQuantitePourRepas, obtenirPrixRetenu } from './coutService';
 //   agregation        = par (ingredientId, codeUniteBase)
 //   prix retenu       = PRIX_PERSONNALISE le plus recent, sinon PRIX_REFERENCE actif
 //
+// Les lignes calculees remplacent les precedentes a chaque appel ;
+// celles ajoutees a la main sont conservees telles quelles.
+//
 // Portee volontairement limitee : seules les recettes locales entrent dans
 // la liste et dans le total. Un repas venu de l'API n'a pas d'ingredients
 // sur l'appareil (la licence interdit de les conserver), il est donc compte
 // dans recettesNonChiffrees et exclu du calcul. C'est ce qui permet a l'ecran
 // d'annoncer "cette liste couvre 4 repas sur 21" plutot qu'un total faux.
 export async function genererListeDuPlan(planHebdoId) {
-  const [repas, unites, preference] = await Promise.all([
+  const [repas, unites, preference, listeExistante] = await Promise.all([
     planRepository.listerRepas(planHebdoId),
     referentielsRepository.listerUnites(),
-    preferenceRepository.obtenir()
+    preferenceRepository.obtenir(),
+    coursesRepository.obtenirParPlan(planHebdoId)
   ]);
 
   const uniteParCode = new Map(unites.map((u) => [u.code, u]));
@@ -73,15 +77,21 @@ export async function genererListeDuPlan(planHebdoId) {
     }
   }
 
-  const lignes = [];
-  let montantEstime = 0;
+  // Les articles ajoutes a la main ne viennent d'aucune recette : ils
+  // survivent a la regeneration, avec leur etat coche. Sans ca, ajouter
+  // du savon puis regenerer la liste le ferait disparaitre sans raison
+  // visible pour la personne.
+  const lignesManuelles = (listeExistante?.lignes ?? []).filter((l) => l.provenance === 'MANUELLE');
+
+  const lignes = [...lignesManuelles];
+  let montantEstime = lignesManuelles.reduce((somme, l) => somme + l.sousTotal, 0);
 
   for (const ligne of agregat.values()) {
     const { prixUnitaire, sourcePrix } = await obtenirPrixRetenu(ligne.ingredientId);
     const quantite = arrondir(ligne.quantite);
     const sousTotal = arrondir(quantite * prixUnitaire);
     montantEstime += sousTotal;
-    lignes.push({ ...ligne, quantite, prixUnitaire, sourcePrix, sousTotal });
+    lignes.push({ ...ligne, quantite, prixUnitaire, sourcePrix, sousTotal, facteurVersBase: 1, provenance: 'PLAN' });
   }
 
   const listeCoursesId = await coursesRepository.creerListe(
