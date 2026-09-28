@@ -6,6 +6,7 @@ const PAR_DEFAUT = {
   carte: 'EQUILIBRE',
   langue: 'fr',
   deviseCode: 'CAD',
+  onboardingTermine: false,
   dateMaj: new Date().toISOString()
 };
 

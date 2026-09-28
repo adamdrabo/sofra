@@ -5,6 +5,9 @@ import { EcranFicheRecette } from '../screens/EcranFicheRecette';
 import { EcranFicheRecetteExterne } from '../screens/EcranFicheRecetteExterne';
 import { EcranNouvelleRecette } from '../screens/EcranNouvelleRecette';
 import { EcranChoisirRecette } from '../screens/EcranChoisirRecette';
+import { EcranOnboardingPersonnes } from '../screens/EcranOnboardingPersonnes';
+import { EcranOnboardingCarte } from '../screens/EcranOnboardingCarte';
+import { EcranOnboardingLangue } from '../screens/EcranOnboardingLangue';
 
 const Stack = createNativeStackNavigator();
 
@@ -14,9 +17,14 @@ const Stack = createNativeStackNavigator();
 // Deux fiches distinctes, parce que les deux sources de recettes n'ont
 // rien a voir : "FicheRecette" lit le stockage local, "FicheRecetteExterne"
 // demande le detail au serveur a chaque ouverture et ne garde rien.
-export function AppNavigator() {
+//
+// ecranInitial : 'OnboardingPersonnes' au premier lancement, 'Onglets' ensuite.
+export function AppNavigator({ ecranInitial = 'Onglets' }) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName={ecranInitial} screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="OnboardingPersonnes" component={EcranOnboardingPersonnes} />
+      <Stack.Screen name="OnboardingCarte" component={EcranOnboardingCarte} />
+      <Stack.Screen name="OnboardingLangue" component={EcranOnboardingLangue} />
       <Stack.Screen name="Onglets" component={TabsNavigator} />
       <Stack.Screen name="Configuration" component={EcranConfiguration} />
       <Stack.Screen name="FicheRecette" component={EcranFicheRecette} />
