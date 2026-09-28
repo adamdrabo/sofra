@@ -1,4 +1,3 @@
-
 class ErreurApi extends Error {
   constructor(status, code, message, details) {
     super(message);

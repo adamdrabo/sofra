@@ -1,4 +1,3 @@
-
 const bcrypt = require('bcryptjs');
 const Compte = require('../models/Compte');
 const { signerJeton } = require('../utils/jwt');

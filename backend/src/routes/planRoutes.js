@@ -1,4 +1,3 @@
-
 const { Router } = require('express')
 const { genererPlan, detailRecette } = require('../controllers/planController')
 

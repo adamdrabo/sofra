@@ -1,4 +1,3 @@
-
 require('dotenv').config({quiet: true})
 const mongoose = require('mongoose')
 const TermeExclu = require('../src/models/TermeExclu')

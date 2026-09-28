@@ -1,4 +1,3 @@
-
 const Compte = require('../models/Compte')
 const { verifierJeton } = require('../utils/jwt')
 const { ErreurApi } = require('./errorHandler')

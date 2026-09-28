@@ -1,4 +1,3 @@
-
 const { Router } = require('express')
 const { inscription, connexion, moi } = require('../controllers/authController')
 const { exigerSession } = require('../middleware/authMiddleware')

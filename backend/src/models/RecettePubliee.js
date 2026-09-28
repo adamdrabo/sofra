@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const ingredientSchema = new mongoose.Schema(
@@ -18,7 +17,6 @@ const etapeSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// Sous-schema pour pouvoir valider le titre comme un tout (au moins une langue remplie).
 const titreSchema = new mongoose.Schema(
   {
     fr: { type: String, trim: true, maxlength: 120 },
