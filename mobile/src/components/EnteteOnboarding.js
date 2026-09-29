@@ -3,8 +3,6 @@ import { couleurs, espacement } from '../theme';
 
 const TOTAL_ETAPES = 3;
 
-// En-tête commun aux 3 écrans d'accueil : barre de progression,
-// "Étape X sur 3", titre et sous-titre.
 export function EnteteOnboarding({ etape, titre, sousTitre }) {
   const segments = Array.from({ length: TOTAL_ETAPES }, (_, i) => i + 1);
 

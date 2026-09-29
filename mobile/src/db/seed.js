@@ -1,8 +1,5 @@
 import { CLES, ecrire, lire } from './storage';
 
-// Donnees livrees avec l'application, ecrites a la premiere ouverture
-// (provenance SEED). A appeler une fois au demarrage (voir App.js). Ne
-// fait rien si le stockage a deja ete ensemence.
 export async function ensemencerSiVide() {
   const uniteExistantes = await lire(CLES.UNITES, null);
   if (uniteExistantes) return;
@@ -38,16 +35,6 @@ export async function ensemencerSiVide() {
     { id: 10, nomFr: 'Sel', nomEn: 'Salt', nomAr: 'ملح', nomNormalise: 'sel', codeUniteBase: 'g', provenance: 'SEED', dateCreation: maintenant }
   ];
 
-  // Prix de depart pour les dix ingredients du referentiel. Sans eux, la
-  // premiere liste affiche zero et le cas "Suivre le cout de sa semaine"
-  // ne demarre jamais (document v5, section 07).
-  //
-  // prix est le montant paye POUR quantite unites : le cout unitaire est
-  // calcule par coutService (prix / quantite). Les unites sont les unites
-  // de base de chaque ingredient (g, ml, piece).
-  //
-  // ATTENTION : seul le boeuf vient d'un vrai releve (Maxi, 28,64 $/kg).
-  // Les neuf autres sont des estimations a remplacer par des releves.
   const prixReference = [
     { id: 1, ingredientId: 1, prix: 28.64, quantite: 1000, codeUnite: 'g' },
     { id: 2, ingredientId: 2, prix: 0.8, quantite: 1, codeUnite: 'piece' },
@@ -76,10 +63,6 @@ export async function ensemencerSiVide() {
     dateMaj: maintenant
   };
 
-  // Deux recettes d'exemple pour ne pas ouvrir l'appli sur un ecran
-  // vide (provenance SEED, comme les referentiels ci-dessus). Elles
-  // servent aussi a remplacer un repas du plan, seules les recettes
-  // locales pouvant etre chiffrees.
   const recettes = [
     {
       id: 101,

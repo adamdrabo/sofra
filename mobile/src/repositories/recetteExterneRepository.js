@@ -1,9 +1,5 @@
 import { CLES, ecrire, genererId, lire } from '../db/storage';
 
-// Seuls id, titre et image sont conserves pour une recette venue de
-// Spoonacular (voir "Ce que RECETTE_EXTERNE ne contient pas").
-// Les ingredients et les etapes ne sont jamais enregistres : ils sont
-// demandes au serveur au moment de l'affichage, puis oublies.
 export const recetteExterneRepository = {
   async lister() {
     return lire(CLES.RECETTES_EXTERNES, []);

@@ -7,12 +7,6 @@ import { EnteteEcran } from '../components/EnteteEcran';
 import { couleurs, rayon } from '../theme';
 import { clientSofra } from '../services/clientSofra';
 
-// Fiche d'une recette venue de Spoonacular. Le detail est demande au
-// serveur a chaque ouverture et n'est jamais ecrit dans le stockage
-// local : la licence ne permet de conserver que l'identifiant, le titre
-// et l'image (voir "affiche puis oublie" dans le document v5).
-//
-// Parametres de navigation : { idExterne, titre }.
 export function EcranFicheRecetteExterne({ route, navigation }) {
   const { idExterne, titre } = route.params;
   const [recette, setRecette] = useState(null);

@@ -7,14 +7,12 @@ import { Bouton } from '../components/Bouton';
 import { preferenceRepository } from '../repositories/preferenceRepository';
 import { couleurs, espacement } from '../theme';
 
-// Mêmes identifiants que dans EcranConfiguration.
 const CARTES = [
   { id: 'EQUILIBRE', titre: 'Équilibré', description: 'Un peu de tout, sans excès' },
   { id: 'RAPIDE', titre: 'Rapide à cuisiner', description: 'Moins de 30 minutes par repas' },
   { id: 'PROTEINES', titre: 'Riche en protéines', description: 'Viandes, poissons, légumineuses' }
 ];
 
-// Onboarding 2/3 : quelle carte pour la semaine ?
 export function EcranOnboardingCarte({ navigation }) {
   const [carte, setCarte] = useState('EQUILIBRE');
 

@@ -7,12 +7,6 @@ import { couleurs, espacement } from '../theme';
 import { recetteRepository } from '../repositories/recetteRepository';
 import { planRepository } from '../repositories/planRepository';
 
-// Remplace un repas du plan par une recette de la personne.
-// C'est le seul chemin par lequel une recette locale entre dans un plan,
-// et donc dans la liste de courses : les recettes venues de l'API ne
-// peuvent pas etre chiffrees (leurs ingredients ne sont pas conserves).
-//
-// Parametres de navigation : { planHebdoId, repasId, libelleRepas }.
 export function EcranChoisirRecette({ route, navigation }) {
   const { planHebdoId, repasId, libelleRepas } = route.params;
   const [recettes, setRecettes] = useState([]);

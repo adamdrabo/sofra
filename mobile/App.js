@@ -14,7 +14,6 @@ const DUREE_SPLASH = 3000;
 
 const attendre = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Écran d'ouverture de Sofra : il reste affiché au minimum 3 secondes.
 function EcranOuverture() {
   return (
     <View style={styles.splash}>
@@ -24,9 +23,6 @@ function EcranOuverture() {
   );
 }
 
-// Point d'entrée de l'application : pendant l'écran d'ouverture, on
-// initialise le stockage local et on décide du premier écran
-// (accueil en 3 étapes au premier lancement, onglets ensuite).
 export default function App() {
   const [ecranInitial, setEcranInitial] = useState(null);
 

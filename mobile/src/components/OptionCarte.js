@@ -1,8 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { couleurs, espacement, rayon } from '../theme';
 
-// Grande carte sélectionnable des écrans d'accueil (choix de la carte,
-// choix de la langue) : blanche par défaut, orange quand elle est active.
 export function OptionCarte({ titre, description, active, onPress }) {
   return (
     <Pressable

@@ -15,10 +15,6 @@ export const referentielsRepository = {
     return [...ingredients].sort((a, b) => a.nomFr.localeCompare(b.nomFr));
   },
 
-  // C'est ici que vit la règle de normalisation : nomNormalise() décide
-  // si "Tomates" correspond à l'ingrédient "Tomate" déjà connu. Le
-  // stockage clé-valeur ne vérifie aucune unicité tout seul (document
-  // v5), donc cette vérification vit ici, dans le code.
   async trouverOuCreerIngredient(nomFr, codeUniteBase) {
     const ingredients = await lire(CLES.INGREDIENTS, []);
     const nomNormalise = normaliserNom(nomFr);

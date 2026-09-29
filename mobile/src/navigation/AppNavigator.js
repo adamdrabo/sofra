@@ -12,16 +12,6 @@ import { EcranOnboardingLangue } from '../screens/EcranOnboardingLangue';
 
 const Stack = createNativeStackNavigator();
 
-// Les ecrans secondaires utilisent maintenant leur propre en-tete Sofra.
-// On masque donc completement l'en-tete natif iOS/Android.
-//
-// Trois fiches distinctes, parce que les trois sources de recettes
-// n'ont rien a voir :
-//   FicheRecette         lit le stockage local
-//   FicheRecetteExterne  demande le detail a Spoonacular, ne garde rien
-//   FicheRecettePubliee  lit le fil de la communaute sur notre serveur
-//
-// ecranInitial : 'OnboardingPersonnes' au premier lancement, 'Onglets' ensuite.
 export function AppNavigator({ ecranInitial = 'Onglets' }) {
   return (
     <Stack.Navigator initialRouteName={ecranInitial} screenOptions={{ headerShown: false }}>

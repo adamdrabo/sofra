@@ -13,8 +13,6 @@ const LANGUES = [
   { id: 'ar', titre: 'العربية' }
 ];
 
-// Onboarding 3/3 : langue de l'application. Dernier écran : on marque
-// l'accueil comme terminé pour ne plus l'afficher aux prochains lancements.
 export function EcranOnboardingLangue({ navigation }) {
   const [langue, setLangue] = useState('fr');
   const [enregistrement, setEnregistrement] = useState(false);
@@ -26,8 +24,7 @@ export function EcranOnboardingLangue({ navigation }) {
   async function terminer() {
     setEnregistrement(true);
     await preferenceRepository.mettreAJour({ langue, onboardingTermine: true });
-    // reset : on remplace toute la pile pour qu'on ne puisse pas revenir
-    // à l'accueil avec le bouton retour.
+
     navigation.reset({ index: 0, routes: [{ name: 'Onglets' }] });
   }
 

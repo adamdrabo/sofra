@@ -9,9 +9,6 @@ import { couleurs, rayon } from '../theme';
 import { referentielsRepository } from '../repositories/referentielsRepository';
 import { recetteRepository } from '../repositories/recetteRepository';
 
-// Cas d'utilisation "Créer une recette" (et, via route.params.id,
-// "Modifier"). Persiste vraiment dans le stockage local (AsyncStorage)
-// via recetteRepository.
 export function EcranNouvelleRecette({ route, navigation }) {
   const id = route.params?.id;
 
@@ -88,13 +85,6 @@ export function EcranNouvelleRecette({ route, navigation }) {
     setEtapes((prec) => prec.filter((_, i) => i !== index));
   }
 
-  // Validation avant enregistrement. Elle est volontairement differente
-  // de celle du nom d'ingredient : une etape contient normalement des
-  // chiffres ("180 °C", "25 minutes"), on ne peut donc pas les
-  // interdire. On exige plutot du vrai texte, ce qui suffit a rejeter
-  // une saisie du genre "48203u-34-23".
-  //
-  // Renvoie un message d'erreur, ou null si tout est correct.
   function verifierSaisie() {
     const nom = nomFr.trim();
     if (nom.length < 2) return 'Donne un nom à ta recette.';
@@ -115,7 +105,6 @@ export function EcranNouvelleRecette({ route, navigation }) {
     const etapesRemplies = etapes.map((e) => e.trim()).filter((e) => e.length > 0);
     if (etapesRemplies.length === 0) return 'Ajoute au moins une étape.';
 
-    // Au moins trois lettres d'affilee quelque part dans l'etape.
     if (etapesRemplies.some((e) => !/\p{L}{3,}/u.test(e))) {
       return 'Chaque étape doit être écrite en toutes lettres.';
     }

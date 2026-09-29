@@ -6,11 +6,6 @@ import { nettoyerNomIngredient, validerNomIngredient } from '../services/validat
 import { referentielsRepository } from '../repositories/referentielsRepository';
 import { Bouton } from './Bouton';
 
-// Realise a l'ecran le composant "Normalisation" du modele : quoi que
-// la personne tape, nomNormalise() decide si ca correspond a un
-// ingredient deja connu dans le stockage local. On ne cree une
-// nouvelle entree que si aucune correspondance n'existe (voir "Le champ
-// qui porte tout le paquet" dans le document de conception).
 export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer }) {
   const [saisie, setSaisie] = useState('');
   const [quantite, setQuantite] = useState('1');
@@ -29,10 +24,6 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
 
   const nomNormaliseSaisi = useMemo(() => normaliserNom(saisie), [saisie]);
 
-  // Un ingredient cree entre dans le referentiel pour de bon : il sert
-  // de cle de regroupement dans la liste de courses et portera un prix.
-  // On refuse donc les chiffres et les caracteres speciaux avant de le
-  // creer.
   const validation = useMemo(() => validerNomIngredient(saisie), [saisie]);
 
   const correspondanceExacte = useMemo(
@@ -40,10 +31,6 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
     [ingredientsConnus, nomNormaliseSaisi]
   );
 
-  // Un ingredient connu est chiffre dans son unite de base : la tomate
-  // a la piece, le riz au gramme. Proposer les kilos pour une tomate
-  // multiplierait son prix par mille. On limite donc aux unites de la
-  // meme famille des qu'on sait de quel ingredient il s'agit.
   const unitesProposees = useMemo(() => {
     if (!correspondanceExacte) return unites;
     return unites.filter((u) => u.codeUniteBase === correspondanceExacte.codeUniteBase);
@@ -51,8 +38,7 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
 
   useEffect(() => {
     if (unitesProposees.length === 0) return;
-    // L'unite choisie avant de reconnaitre l'ingredient peut ne plus
-    // etre permise : on retombe sur la premiere compatible.
+
     if (!unitesProposees.some((u) => u.code === uniteChoisie?.code)) {
       setUniteChoisie(unitesProposees[0]);
     }
@@ -82,8 +68,7 @@ export function ModalNormalisationIngredient({ visible, onFermer, onConfirmer })
 
   async function creerNouveau() {
     if (!uniteChoisie || !validation.valide) return;
-    // Passe par referentielsRepository : c'est lui qui vérifie
-    // nomNormalise avant de vraiment créer une nouvelle ligne.
+
     const ingredient = await referentielsRepository.trouverOuCreerIngredient(
       nettoyerNomIngredient(saisie),
       uniteChoisie.codeUniteBase

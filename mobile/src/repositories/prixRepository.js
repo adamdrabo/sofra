@@ -21,8 +21,6 @@ export const prixRepository = {
     const prix = await lire(CLES.PRIX_PERSONNALISE, []);
     const dateReleve = new Date().toISOString().slice(0, 10);
 
-    // Un seul prix personnalisé par ingrédient et par date (règle
-    // vérifiée ici, dans le code, comme le prévoit le document v5).
     const sansDoublon = prix.filter((p) => !(p.ingredientId === ingredientId && p.dateReleve === dateReleve));
     const nouveau = {
       id: Date.now(),

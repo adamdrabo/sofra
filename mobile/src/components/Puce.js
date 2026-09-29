@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { couleurs, rayon } from '../theme';
 
-// Pastille arrondie utilisee pour les tags (temps, portions, filtres).
 export function Puce({ texte, active }) {
   return (
     <View style={[styles.puce, active && styles.puceActive]}>

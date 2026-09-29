@@ -9,14 +9,6 @@ import { couleurs, rayon } from '../theme';
 import { clientSofra } from '../services/clientSofra';
 import { adapterRecettePubliee, titreAffiche } from '../services/communauteService';
 
-// Une recette du fil de la communaute, lue en entier.
-//
-// Elle vient du serveur et reste sur le serveur : rien n'est enregistre
-// sur l'appareil tant que la personne n'appuie pas sur "Adapter". C'est
-// a ce moment-la que la copie devient sa recette, avec ses ingredients
-// passes par la normalisation locale.
-//
-// Parametre de navigation : { id } (identifiant de la recette publiee).
 export function EcranFicheRecettePubliee({ route, navigation }) {
   const { id } = route.params;
   const [recette, setRecette] = useState(null);
@@ -52,8 +44,7 @@ export function EcranFicheRecettePubliee({ route, navigation }) {
     setErreur(null);
     try {
       const nouvelle = await adapterRecettePubliee(recette);
-      // On ouvre directement la copie : la personne voit tout de suite
-      // que la recette est devenue la sienne, et peut la modifier.
+  
       navigation.navigate('FicheRecette', { id: nouvelle.id });
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue');

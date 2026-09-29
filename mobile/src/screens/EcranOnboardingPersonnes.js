@@ -6,10 +6,8 @@ import { Bouton } from '../components/Bouton';
 import { preferenceRepository } from '../repositories/preferenceRepository';
 import { couleurs, espacement } from '../theme';
 
-// 5 s'affiche "5+"
 const OPTIONS = [1, 2, 3, 4, 5];
 
-// Onboarding 1/3 : pour combien de personnes cuisine-t-on ?
 export function EcranOnboardingPersonnes({ navigation }) {
   const [nombre, setNombre] = useState(2);
 

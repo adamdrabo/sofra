@@ -6,8 +6,10 @@ import { Carte } from '../components/Carte';
 import { couleurs, espacement, rayon } from '../theme';
 import { clientSofra } from '../services/clientSofra';
 import { sessionService } from '../services/sessionService';
+import { useEspacementBarreOnglets } from '../hooks/useEspacementBarreOnglets';
 
 export function EcranCompte() {
+  const espacementBarre = useEspacementBarreOnglets();
   const [compte, setCompte] = useState(null);
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
@@ -49,7 +51,7 @@ export function EcranCompte() {
     return (
       <View style={styles.ecran}>
         <EnteteEcran titre="Mon compte" sousTitre="Ton espace personnel Sofra" />
-        <View style={styles.contenuCompte}>
+        <View style={[styles.contenuCompte, { paddingBottom: espacementBarre }]}>
           <Carte style={styles.profilCarte}>
             <View style={styles.avatar}><Text style={styles.avatarTexte}>{(compte.nomAffiche || 'S').charAt(0).toUpperCase()}</Text></View>
             <Text style={styles.bienvenue}>Bienvenue, {compte.nomAffiche}</Text>
@@ -64,7 +66,10 @@ export function EcranCompte() {
   return (
     <KeyboardAvoidingView style={styles.ecran} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <EnteteEcran titre="Mon compte" sousTitre="Connecte-toi pour retrouver tes informations" />
-      <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.contenu, { paddingBottom: espacementBarre }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Carte style={styles.formulaire}>
           <View style={styles.introFormulaire}>
             <View style={styles.miniLogo}><Text style={styles.miniLogoTexte}>S</Text></View>

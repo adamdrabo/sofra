@@ -2,8 +2,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { couleurs, espacement, rayon } from '../theme';
 
-// En-tete commun de Sofra : toujours sous la barre d'etat, avec un titre
-// coherent et, si necessaire, un bouton retour/action personnalise.
 export function EnteteEcran({ titre, sousTitre, onRetour, action }) {
   const insets = useSafeAreaInsets();
 

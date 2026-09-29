@@ -1,78 +1,33 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, StyleSheet } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EcranSemaine } from '../screens/EcranSemaine';
 import { EcranRecettes } from '../screens/EcranRecettes';
 import { EcranListe } from '../screens/EcranListe';
 import { EcranFil } from '../screens/EcranFil';
 import { EcranCompte } from '../screens/EcranCompte';
 import { couleurs } from '../theme';
+import { HAUTEUR_BARRE_ONGLETS, MARGE_BARRE_ONGLETS } from '../constants/barreOnglets';
 
 const Tab = createBottomTabNavigator();
+const TAILLE_ICONE = 24;
 
-// Petites icones volontairement simples et originales, dessinees avec des
-// vues React Native plutot que les boutons natifs d'iOS/Android.
-function IconeOnglet({ nom, actif }) {
-  const couleur = actif ? couleurs.primaire : couleurs.encreDouce;
+const ICONES_IONICONS = {
+  semaine: 'calendar-outline',
+  liste: 'list-outline',
+  communaute: 'people-outline',
+  compte: 'person-outline'
+};
 
-  if (nom === 'semaine') {
-    return (
-      <View style={styles.icone}>
-        <View style={[styles.calendrier, { borderColor: couleur }]}>
-          <View style={[styles.calendrierLigne, { backgroundColor: couleur }]} />
-          <View style={styles.calendrierCases}>
-            {[0, 1, 2].map((i) => <View key={i} style={[styles.point, { backgroundColor: couleur }]} />)}
-          </View>
-        </View>
-      </View>
-    );
-  }
-
+function IconeOnglet({ nom, couleur }) {
   if (nom === 'recettes') {
-    return (
-      <View style={styles.icone}>
-        <View style={[styles.livre, { borderColor: couleur }]}>
-          <View style={[styles.livreTrait, { backgroundColor: couleur }]} />
-          <View style={[styles.livreTraitCourt, { backgroundColor: couleur }]} />
-        </View>
-      </View>
-    );
+    return <MaterialCommunityIcons name="pot-steam-outline" size={TAILLE_ICONE} color={couleur} />;
   }
-
-  if (nom === 'liste') {
-    return (
-      <View style={styles.icone}>
-        {[0, 1, 2].map((i) => (
-          <View key={i} style={styles.ligneIcone}>
-            <View style={[styles.lignePoint, { backgroundColor: couleur }]} />
-            <View style={[styles.ligneTexte, { backgroundColor: couleur }]} />
-          </View>
-        ))}
-      </View>
-    );
-  }
-
-  if (nom === 'communaute') {
-    // Deux silhouettes cote a cote : le fil est fait de recettes
-    // partagees par d'autres membres.
-    return (
-      <View style={styles.icone}>
-        <View style={[styles.teteGauche, { backgroundColor: couleur }]} />
-        <View style={[styles.teteDroite, { backgroundColor: couleur }]} />
-        <View style={[styles.epaulesLarges, { borderColor: couleur }]} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.icone}>
-      <View style={[styles.tete, { backgroundColor: couleur }]} />
-      <View style={[styles.epaules, { borderColor: couleur }]} />
-    </View>
-  );
+  return <Ionicons name={ICONES_IONICONS[nom] ?? 'ellipse-outline'} size={TAILLE_ICONE} color={couleur} />;
 }
 
-// Nom de l'icone a dessiner pour chaque onglet.
-const ICONES = {
+const NOM_ONGLET_VERS_ICONE = {
   Semaine: 'semaine',
   Recettes: 'recettes',
   Liste: 'liste',
@@ -81,6 +36,9 @@ const ICONES = {
 };
 
 export function TabsNavigator() {
+
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -89,9 +47,12 @@ export function TabsNavigator() {
         tabBarInactiveTintColor: couleurs.encreDouce,
         tabBarHideOnKeyboard: true,
         tabBarLabelStyle: styles.label,
-        tabBarStyle: styles.barre,
         tabBarItemStyle: styles.item,
-        tabBarIcon: ({ focused }) => <IconeOnglet actif={focused} nom={ICONES[route.name] ?? 'compte'} />
+
+        tabBarStyle: [styles.barre, { height: HAUTEUR_BARRE_ONGLETS, bottom: insets.bottom + MARGE_BARRE_ONGLETS }],
+        tabBarIcon: ({ focused, color }) => (
+          <IconeOnglet nom={NOM_ONGLET_VERS_ICONE[route.name] ?? 'compte'} couleur={color} />
+        )
       })}
     >
       <Tab.Screen name="Semaine" component={EcranSemaine} />
@@ -105,33 +66,22 @@ export function TabsNavigator() {
 
 const styles = StyleSheet.create({
   barre: {
-    height: 78,
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    borderRadius: 24,
+    backgroundColor: couleurs.blanc,
+    borderWidth: 1,
+    borderColor: couleurs.bordure,
     paddingTop: 8,
     paddingBottom: 8,
-    backgroundColor: couleurs.blanc,
-    borderTopWidth: 1,
-    borderTopColor: couleurs.bordure,
-    elevation: 0,
-    shadowOpacity: 0
+
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }
   },
-  // Cinq onglets au lieu de quatre : un peu moins de place et un
-  // libelle plus petit pour que "Communaute" tienne sur une ligne.
   item: { paddingHorizontal: 0 },
-  label: { fontSize: 10, fontWeight: '600', marginTop: 1 },
-  icone: { width: 26, height: 25, alignItems: 'center', justifyContent: 'center' },
-  calendrier: { width: 22, height: 21, borderWidth: 2, borderRadius: 5, overflow: 'hidden' },
-  calendrierLigne: { height: 4, width: '100%' },
-  calendrierCases: { flexDirection: 'row', justifyContent: 'space-evenly', paddingTop: 5 },
-  point: { width: 3, height: 3, borderRadius: 3 },
-  livre: { width: 20, height: 22, borderWidth: 2, borderRadius: 3, justifyContent: 'center', paddingHorizontal: 4 },
-  livreTrait: { height: 2, width: '100%', marginBottom: 4 },
-  livreTraitCourt: { height: 2, width: '65%' },
-  ligneIcone: { width: 22, height: 6, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  lignePoint: { width: 4, height: 4, borderRadius: 4 },
-  ligneTexte: { height: 2, width: 14, borderRadius: 2 },
-  tete: { width: 9, height: 9, borderRadius: 9, position: 'absolute', top: 2 },
-  teteGauche: { width: 8, height: 8, borderRadius: 8, position: 'absolute', top: 2, left: 3 },
-  teteDroite: { width: 8, height: 8, borderRadius: 8, position: 'absolute', top: 2, right: 3 },
-  epaulesLarges: { width: 24, height: 10, borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 12, borderTopRightRadius: 12, position: 'absolute', bottom: 2 },
-  epaules: { width: 20, height: 11, borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 12, borderTopRightRadius: 12, position: 'absolute', bottom: 1 }
+  label: { fontSize: 10, fontWeight: '600', marginTop: 2 }
 });

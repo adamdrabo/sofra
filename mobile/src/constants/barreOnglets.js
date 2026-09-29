@@ -1,0 +1,2 @@
+export const MARGE_BARRE_ONGLETS = 16;
+export const HAUTEUR_BARRE_ONGLETS = 68;

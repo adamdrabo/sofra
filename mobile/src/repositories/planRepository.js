@@ -1,7 +1,5 @@
 import { CLES, ecrire, genererId, lire } from '../db/storage';
 
-// Le plan porte directement ses repas (imbriqués), comme la recette
-// porte ses ingrédients : pas de jointure dans un stockage clé-valeur.
 export const planRepository = {
   async creerPlan(nombrePersonnes, carte, deviseCode, repas) {
     const plans = await lire(CLES.PLANS_HEBDO, []);
@@ -41,9 +39,6 @@ export const planRepository = {
     return plan ? plan.repas : [];
   },
 
-  // Une case du plan porte soit une recette locale, soit une recette de
-  // l'API, jamais les deux (regle du document v5). On vide donc toujours
-  // l'autre champ.
   async remplacerRepas(planHebdoId, repasId, recetteId) {
     const plans = await lire(CLES.PLANS_HEBDO, []);
     const misAJour = plans.map((plan) =>

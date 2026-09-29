@@ -8,10 +8,10 @@ import { planRepository } from '../repositories/planRepository';
 import { recetteExterneRepository } from '../repositories/recetteExterneRepository';
 import { recetteRepository } from '../repositories/recetteRepository';
 import { genererPlanDeLaSemaine } from '../services/planGenerator';
+import { useEspacementBarreOnglets } from '../hooks/useEspacementBarreOnglets';
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
-// Noms quebecois des repas, et ordre d'affichage dans la journee.
 const REPAS = {
   DEJEUNER: { libelle: 'Déjeuner', emoji: '🥣', rang: 1 },
   DINER: { libelle: 'Dîner', emoji: '🍲', rang: 2 },
@@ -19,10 +19,11 @@ const REPAS = {
 };
 
 export function EcranSemaine({ navigation }) {
+
+  const espacementBarre = useEspacementBarreOnglets();
   const [plan, setPlan] = useState(null);
   const [repas, setRepas] = useState([]);
-  // Un repas ne stocke qu'un identifiant : il faut les recettes pour
-  // afficher un titre. Les deux sources cohabitent dans un plan.
+  
   const [recettesExternes, setRecettesExternes] = useState([]);
   const [recettesLocales, setRecettesLocales] = useState([]);
   const [enChargement, setEnChargement] = useState(false);
@@ -66,7 +67,7 @@ export function EcranSemaine({ navigation }) {
     }
   }
 
-  // Retrouve la recette derriere un repas, quelle que soit sa source.
+
   const decrire = useCallback(
     (repasDuJour) => {
       if (repasDuJour.recetteExterneId) {
@@ -79,9 +80,6 @@ export function EcranSemaine({ navigation }) {
     [recettesExternes, recettesLocales]
   );
 
-  // Appui long sur un repas : le remplacer par une de ses propres
-  // recettes. C'est ce qui rend la liste de courses possible, puisque
-  // seules les recettes locales peuvent etre chiffrees.
   function remplacerRepas(repasDuJour) {
     if (!plan) return;
     navigation.navigate('ChoisirRecette', {
@@ -139,7 +137,7 @@ export function EcranSemaine({ navigation }) {
       <FlatList
         data={repasParJour}
         keyExtractor={(item) => String(item.numero)}
-        contentContainerStyle={styles.liste}
+        contentContainerStyle={[styles.liste, { paddingBottom: espacementBarre + 70 }]}
         ListHeaderComponent={
           <View style={styles.intro}>
             <View>
@@ -203,7 +201,7 @@ export function EcranSemaine({ navigation }) {
         ListEmptyComponent={<Text style={styles.vide}>Aucun plan pour le moment.</Text>}
       />
 
-      <View style={styles.actionBas}>
+      <View style={[styles.actionBas, { bottom: espacementBarre }]}>
         <Bouton
           titre={plan ? 'Regénérer mon plan' : 'Créer mon plan de 7 jours'}
           onPress={genererNouveauPlan}
@@ -270,7 +268,8 @@ const styles = StyleSheet.create({
   repasType: { fontSize: 12, color: couleurs.encreDouce, marginTop: 2 },
   chevron: { fontSize: 22, color: couleurs.encreDouce, paddingHorizontal: 4 },
   vide: { fontSize: 13, color: couleurs.encreDouce, paddingVertical: 8 },
-  actionBas: { position: 'absolute', left: 16, right: 16, bottom: 10 },
+
+  actionBas: { position: 'absolute', left: 16, right: 16 },
   erreur: { marginHorizontal: 16, marginBottom: 8, padding: 10, borderRadius: 12, backgroundColor: '#FBE9E2' },
   erreurTexte: { color: couleurs.primaireFonce, fontSize: 13 },
   avis: { marginHorizontal: 16, marginBottom: 8, padding: 10, borderRadius: 12, backgroundColor: couleurs.fondDegrade },

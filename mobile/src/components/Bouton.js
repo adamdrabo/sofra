@@ -1,7 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { couleurs, rayon } from '../theme';
 
-// Bouton Sofra : Pressable personnalise, sans le bouton natif iOS/Android.
 export function Bouton({ titre, onPress, variante = 'plein', enChargement, desactive }) {
   const estPlein = variante === 'plein';
 

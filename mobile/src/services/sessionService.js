@@ -3,8 +3,6 @@ import * as SecureStore from 'expo-secure-store';
 const CLE_JETON = 'sofra.jeton';
 const CLE_COMPTE = 'sofra.compte';
 
-// Le jeton ne va jamais dans le stockage clé-valeur des données (voir
-// composant "Session").
 export const sessionService = {
   async enregistrer(jeton, compte) {
     await SecureStore.setItemAsync(CLE_JETON, jeton);

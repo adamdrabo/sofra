@@ -1,8 +1,5 @@
 import { CLES, ecrire, genererId, lire } from '../db/storage';
 
-// Dans un stockage clé-valeur, la recette porte directement ses
-// ingrédients et ses étapes (pas de jointure) : c'est cette forme
-// imbriquée qu'on enregistre sous CLES.RECETTES.
 async function listerTout() {
   return lire(CLES.RECETTES, []);
 }

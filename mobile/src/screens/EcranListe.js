@@ -14,18 +14,11 @@ import { RAYONS, rayonPourIngredient } from '../constants/rayons';
 import { obtenirPrixRetenu } from '../services/coutService';
 import { genererListeDuPlan } from '../services/listeService';
 import { couleurs, espacement } from '../theme';
+import { useEspacementBarreOnglets } from '../hooks/useEspacementBarreOnglets';
 
-// Ecran "Liste" : cas d'utilisation "Préparer sa liste d'épicerie" et
-// "Suivre le coût de sa semaine".
-//
-// Les lignes viennent du plan (calculées par listeService), mais la
-// personne garde la main : elle coche ce qu'elle achète, corrige une
-// quantité ou une unité, saisit le prix payé, ajoute un article oublié
-// et enregistre ce qu'elle a vraiment dépensé.
-//
-// Le regroupement se fait par rayon d'épicerie et non par recette :
-// devant l'étalage, on cherche « les légumes », pas « le mafé ».
 export function EcranListe() {
+
+  const espacementBarre = useEspacementBarreOnglets();
   const [plan, setPlan] = useState(null);
   const [liste, setListe] = useState(null);
   const [lignes, setLignes] = useState([]);
@@ -33,7 +26,6 @@ export function EcranListe() {
   const [unites, setUnites] = useState([]);
   const [enChargement, setEnChargement] = useState(false);
   const [message, setMessage] = useState(null);
-  // Change a chaque ecriture, pour forcer le rechargement de l'ecran.
   const [version, setVersion] = useState(0);
   const [ligneEnEdition, setLigneEnEdition] = useState(null);
   const [ajoutOuvert, setAjoutOuvert] = useState(false);
@@ -69,9 +61,7 @@ export function EcranListe() {
           return;
         }
 
-        // Les lignes ne portent que l'id de l'ingredient (pas de
-        // jointure dans un stockage cle-valeur) : le nom affichable et
-        // le rayon sont resolus ici, a l'affichage.
+
         const lignesCompletes = listeCourante.lignes.map((ligne) => {
           const ingredient = ingredients.find((i) => i.id === ligne.ingredientId);
           return {
@@ -82,8 +72,6 @@ export function EcranListe() {
         });
         setLignes(lignesCompletes);
 
-        // Une section par rayon, dans l'ordre du magasin. Les rayons
-        // sans article ne sont pas affiches.
         setGroupes(
           RAYONS.map((r) => ({ ...r, lignes: lignesCompletes.filter((l) => l.rayon === r.code) })).filter(
             (r) => r.lignes.length > 0
@@ -118,9 +106,6 @@ export function EcranListe() {
     }
   }
 
-  // Modification d'une ligne : quantite, unite, et prix si la personne
-  // en a saisi un. Le prix est enregistre a part, sur l'ingredient :
-  // il resservira aux prochaines listes.
   async function enregistrerLigne({ quantite, codeUnite, facteurVersBase, prix }) {
     const ligne = ligneEnEdition;
     if (!liste || !ligne) return;
@@ -129,8 +114,6 @@ export function EcranListe() {
 
     if (prix) {
       await prixRepository.ajouterPrixPersonnalise(ligne.ingredientId, prix.prix, prix.quantite, codeUnite, prix.magasin);
-      // Le prix est stocke par unite de BASE : un prix saisi au kilo
-      // doit donc etre ramene au gramme avant d'etre enregistre.
       champs.prixUnitaire = prix.prix / prix.quantite / (facteurVersBase || 1);
       champs.sourcePrix = 'PERSONNALISE';
     }
@@ -147,9 +130,6 @@ export function EcranListe() {
     setVersion((v) => v + 1);
   }
 
-  // Article ajoute a la main. Il reutilise le meme modal que la
-  // creation de recette : la normalisation des noms d'ingredients est
-  // la meme partout dans l'application.
   async function ajouterArticle(choix) {
     setAjoutOuvert(false);
     if (!liste) return;
@@ -157,11 +137,6 @@ export function EcranListe() {
     const unite = unites.find((u) => u.code === choix.codeUnite);
     const { prixUnitaire, sourcePrix } = await obtenirPrixRetenu(choix.ingredient.id);
 
-    // Garde-fou : si l'unite choisie n'est pas de la meme famille que
-    // celle qui sert au prix (des kilos pour un ingredient chiffre a la
-    // piece), aucune conversion n'est possible. On garde la quantite
-    // telle quelle et on ne chiffre pas la ligne, plutot que d'afficher
-    // un montant multiplie par mille.
     const compatible = unite?.codeUniteBase === choix.ingredient.codeUniteBase;
 
     await coursesRepository.ajouterLigne(liste.id, {
@@ -178,8 +153,6 @@ export function EcranListe() {
   async function enregistrerMontantReel() {
     if (!liste) return;
     const saisie = montantReelSaisi.trim();
-    // Champ vide : on ne remplace pas montantReel par zero, sinon
-    // l'ecran annoncerait une economie alors que rien n'a ete saisi.
     if (saisie === '') return;
     const montant = Number(saisie.replace(',', '.'));
     if (!Number.isFinite(montant) || montant < 0) return;
@@ -198,8 +171,6 @@ export function EcranListe() {
   const articlesCoches = lignes.filter((l) => l.estAchete).length;
   const montantRestant = lignes.reduce((somme, l) => (l.estAchete ? somme : somme + l.sousTotal), 0);
 
-  // "Semaine du 14 au 20 septembre", a partir de la date de debut du
-  // plan : sept jours, du premier au septieme inclus.
   function semaineAffichee() {
     if (!plan?.dateDebut) return null;
     const debut = new Date(plan.dateDebut);
@@ -212,7 +183,10 @@ export function EcranListe() {
 
   return (
     <View style={styles.ecran}>
-      <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.contenu, { paddingBottom: espacementBarre + (liste ? 170 : 0) }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <EnteteEcran
           titre="Liste d'épicerie"
           sousTitre={
@@ -288,7 +262,7 @@ export function EcranListe() {
       {/* Pied fixe : le total suit la personne pendant qu'elle fait
           ses courses, sans avoir a redescendre la liste. */}
       {liste ? (
-        <View style={styles.pied}>
+        <View style={[styles.pied, { bottom: espacementBarre }]}>
           <View style={styles.piedLigne}>
             <View style={{ flex: 1 }}>
               <Text style={styles.piedTitre}>Total estimé</Text>
@@ -376,7 +350,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
+
     backgroundColor: couleurs.blanc,
     borderTopWidth: 1,
     borderColor: couleurs.bordure,

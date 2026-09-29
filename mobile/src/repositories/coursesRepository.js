@@ -1,8 +1,5 @@
 import { CLES, ecrire, genererId, lire } from '../db/storage';
 
-// Le prix d'un ingredient est toujours exprime par unite de BASE
-// (le gramme, le millilitre, la piece). Une ligne affichee en kg doit
-// donc etre ramenee en grammes avant d'etre multipliee par le prix.
 function recalculer(ligne) {
   const quantiteEnBase = ligne.quantite * (ligne.facteurVersBase ?? 1);
   return { ...ligne, sousTotal: Math.round(quantiteEnBase * ligne.prixUnitaire * 100) / 100 };
@@ -30,20 +27,18 @@ export const coursesRepository = {
         ingredientId: l.ingredientId,
         quantite: l.quantite,
         codeUnite: l.codeUnite,
-        // Facteur vers l'unite de base, garde sur la ligne pour que le
-        // sous-total reste juste si la personne change d'unite (kg -> g).
+
         facteurVersBase: l.facteurVersBase ?? 1,
         prixUnitaire: l.prixUnitaire,
         sourcePrix: l.sourcePrix,
         sousTotal: l.sousTotal,
-        // PLAN : calculee depuis les recettes, remplacee a chaque
-        // regeneration. MANUELLE : ajoutee a la main, conservee.
+
         provenance: l.provenance ?? 'PLAN',
         estAchete: l.estAchete ?? false
       }))
     };
 
-    // Une seule liste par plan : on remplace si elle existait déjà.
+  
     const sansAncienne = listes.filter((l) => l.planHebdoId !== planHebdoId);
     await ecrire(CLES.LISTES_COURSES, [...sansAncienne, nouvelle]);
     return id;
@@ -69,9 +64,7 @@ export const coursesRepository = {
     await ecrire(CLES.LISTES_COURSES, misesAJour);
   },
 
-  // Modifie une ligne : quantite, unite, prix, ou plusieurs a la fois.
-  // Le sous-total et le montant estime de la liste suivent, sinon le
-  // total affiche ne correspondrait plus a la somme des lignes.
+
   async majLigne(listeCoursesId, ligneId, champs) {
     const listes = await lire(CLES.LISTES_COURSES, []);
     const misesAJour = listes.map((l) => {
@@ -82,8 +75,6 @@ export const coursesRepository = {
     await ecrire(CLES.LISTES_COURSES, misesAJour);
   },
 
-  // Article ajoute a la main : il ne vient d'aucune recette du plan et
-  // survit aux regenerations de la liste (voir listeService).
   async ajouterLigne(listeCoursesId, ligne) {
     const listes = await lire(CLES.LISTES_COURSES, []);
     const misesAJour = listes.map((l) => {

@@ -5,11 +5,8 @@ import { EnteteEcran } from '../components/EnteteEcran';
 import { Carte } from '../components/Carte';
 import { couleurs, espacement, rayon } from '../theme';
 import { clientSofra } from '../services/clientSofra';
+import { useEspacementBarreOnglets } from '../hooks/useEspacementBarreOnglets';
 
-// Emoji de la vignette, choisi d'apres la categorie de la recette.
-// Purement decoratif : le serveur ne renvoie aucune image pour une
-// recette publiee, et la licence n'a rien a voir ici, c'est simplement
-// que personne ne televerse de photo dans l'application.
 const EMOJI_PAR_CATEGORIE = {
   'petit-déjeuner': '🥐',
   'plat principal': '🍲',
@@ -21,10 +18,9 @@ function emojiPourCategorie(categorie) {
   return EMOJI_PAR_CATEGORIE[String(categorie ?? '').toLowerCase()] ?? '🍽️';
 }
 
-// Fil de la communaute : chronologique, du plus recent au plus ancien.
-// Pas de tri, pas de popularite, pas de recherche (decision de produit).
-// La lecture est ouverte : aucun compte n'est demande pour consulter.
 export function EcranFil({ navigation }) {
+
+  const espacementBarre = useEspacementBarreOnglets();
   const [recettes, setRecettes] = useState([]);
   const [erreur, setErreur] = useState(null);
   const [chargement, setChargement] = useState(true);
@@ -59,14 +55,10 @@ export function EcranFil({ navigation }) {
     setRafraichit(false);
   }
 
-  // Une recette publiee porte un titre dans au moins une langue,
-  // pas forcement en francais : on prend la premiere disponible.
   function titreAffiche(recette) {
     return recette.titre?.fr || recette.titre?.en || recette.titre?.ar || 'Sans titre';
   }
 
-  // L'auteur est absent si le compte a ete supprime depuis la publication :
-  // la recette reste, elle appartient au fil.
   function auteurAffiche(recette) {
     return recette.auteur?.nomAffiche || 'Membre';
   }
@@ -104,7 +96,7 @@ export function EcranFil({ navigation }) {
         <FlatList
           data={recettes}
           keyExtractor={(item) => String(item._id)}
-          contentContainerStyle={styles.liste}
+          contentContainerStyle={[styles.liste, { paddingBottom: espacementBarre }]}
           refreshControl={
             <RefreshControl refreshing={rafraichit} onRefresh={rafraichir} tintColor={couleurs.primaire} />
           }

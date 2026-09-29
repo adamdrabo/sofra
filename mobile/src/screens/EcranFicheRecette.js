@@ -11,8 +11,6 @@ import { recetteRepository } from '../repositories/recetteRepository';
 import { publierRecetteLocale } from '../services/communauteService';
 import { sessionService } from '../services/sessionService';
 
-// Fiche recette (cas d'utilisation "Créer une recette" / "Adapter une
-// recette"). Lit le vrai stockage local (AsyncStorage).
 export function EcranFicheRecette({ route, navigation }) {
   const { id } = route.params;
   const [recette, setRecette] = useState(null);
@@ -41,9 +39,6 @@ export function EcranFicheRecette({ route, navigation }) {
     }, [id])
   );
 
-  // Publier est le seul cas d'utilisation qui exige un compte. Sans
-  // session, on renvoie vers l'onglet Compte plutot que d'afficher une
-  // erreur technique.
   async function publier() {
     setAvis(null);
 

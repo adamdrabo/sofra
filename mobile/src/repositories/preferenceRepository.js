@@ -10,8 +10,6 @@ const PAR_DEFAUT = {
   dateMaj: new Date().toISOString()
 };
 
-// Un seul jeu de préférences par appareil (voir "Un seul profil par
-// appareil" dans le document v5) : pas de tableau, un objet unique.
 export const preferenceRepository = {
   async obtenir() {
     return lire(CLES.PREFERENCE, PAR_DEFAUT);

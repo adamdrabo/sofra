@@ -6,14 +6,13 @@ import { Bouton } from '../components/Bouton';
 import { couleurs, rayon } from '../theme';
 import { referentielsRepository } from '../repositories/referentielsRepository';
 import { recetteRepository } from '../repositories/recetteRepository';
+import { useEspacementBarreOnglets } from '../hooks/useEspacementBarreOnglets';
 
-// Ecran "Gestion des recettes" (onglet Recettes) : cas d'utilisation
-// "Créer une recette" et "Adapter une recette de la communauté". Lit le
-// vrai stockage local (AsyncStorage), ensemencé avec deux recettes
-// d'exemple au premier lancement — voir src/db/seed.js.
 export function EcranRecettes({ navigation }) {
   const [recettes, setRecettes] = useState([]);
   const [categories, setCategories] = useState([]);
+  
+  const espacementBarre = useEspacementBarreOnglets();
 
   useFocusEffect(
     useCallback(() => {
@@ -61,7 +60,7 @@ export function EcranRecettes({ navigation }) {
         ListEmptyComponent={<Text style={{ paddingHorizontal: 20 }}>Aucune recette pour le moment.</Text>}
       />
 
-      <View style={{ padding: 20, paddingTop: 0 }}>
+      <View style={{ paddingHorizontal: 20, paddingBottom: espacementBarre }}>
         <Bouton titre="Nouvelle recette" onPress={() => navigation.navigate('NouvelleRecette')} />
       </View>
     </View>

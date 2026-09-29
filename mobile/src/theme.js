@@ -1,6 +1,3 @@
-// Jetons de style repris de la planche d'écrans du prototype (Sofra -
-// Prototype autonome). Unique source de vérité pour les couleurs et
-// arrondis : ne pas ré-écrire des couleurs en dur ailleurs dans l'app.
 export const couleurs = {
   fondEcran: '#FAF5EE',
   fondDegrade: '#F6E1D8',

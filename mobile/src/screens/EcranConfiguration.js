@@ -19,10 +19,6 @@ const LANGUES = [
   { id: 'ar', label: '🇸🇦 العربية' }
 ];
 
-// Cas d'utilisation "Configurer ses preferences" : nombre de personnes,
-// carte, langue. Reprend les couleurs et composants officiels du
-// prototype (Carte, Bouton, Puce, EnteteEcran) plutot que des styles
-// inline, pour rester coherent avec le reste de l'app.
 export function EcranConfiguration({ navigation }) {
   const [nombrePersonnes, setNombrePersonnes] = useState(2);
   const [carte, setCarte] = useState('EQUILIBRE');

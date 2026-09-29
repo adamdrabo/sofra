@@ -3,19 +3,6 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { couleurs, rayon } from '../theme';
 import { Bouton } from './Bouton';
 
-// Modification d'une ligne de la liste de courses : quantite, unite,
-// prix paye, et suppression.
-//
-// REGLE D'UNITE
-// On ne propose que les unites de la meme famille que la ligne (masse
-// avec masse, volume avec volume). Convertir des grammes en millilitres
-// demanderait une densite par ingredient, que le modele n'a pas : c'est
-// la limite assumee du document v5.
-//
-// PRIX
-// La personne saisit ce qu'elle a paye POUR une quantite (3,50 $ pour
-// 4 pieces), jamais un prix unitaire : personne ne lit "0,875 $ la
-// piece" sur une etiquette. Le prix saisi devient un PRIX_PERSONNALISE.
 export function ModalLigneCourses({ visible, ligne, unites, onFermer, onEnregistrer, onSupprimer }) {
   const [quantite, setQuantite] = useState('');
   const [uniteChoisie, setUniteChoisie] = useState(null);
@@ -23,8 +10,6 @@ export function ModalLigneCourses({ visible, ligne, unites, onFermer, onEnregist
   const [quantitePrix, setQuantitePrix] = useState('');
   const [magasin, setMagasin] = useState('');
 
-  // Unite actuelle de la ligne, puis toutes celles qui partagent la
-  // meme unite de base.
   const uniteCourante = useMemo(() => unites.find((u) => u.code === ligne?.codeUnite) ?? null, [unites, ligne]);
 
   const unitesCompatibles = useMemo(() => {
@@ -59,8 +44,7 @@ export function ModalLigneCourses({ visible, ligne, unites, onFermer, onEnregist
       quantite: Math.round(quantiteNombre * 100) / 100,
       codeUnite: uniteChoisie.code,
       facteurVersBase: uniteChoisie.facteurVersBase,
-      // prix null quand la personne n'a rien saisi : la ligne garde
-      // alors son prix de reference.
+
       prix:
         prixSaisi && prixValide
           ? { prix: prixNombre, quantite: quantitePrixNombre, magasin: magasin.trim() || null }
