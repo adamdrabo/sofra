@@ -1,0 +1,33 @@
+meta {
+  name: 03 Plan, carte Rapide a cuisiner
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/plan?carte=RAPIDE
+  body: none
+  auth: none
+}
+
+params:query {
+  carte: RAPIDE
+}
+
+assert {
+  res.status: eq 200
+  res.body.carte: eq RAPIDE
+}
+
+tests {
+  test("la carte renvoie assez de recettes pour ne rien repeter", function() {
+    expect(res.getBody().incomplet).to.equal(false);
+  });
+}
+
+docs {
+  La carte Rapide ajoute un temps de preparation maximal a l'appel
+  Spoonacular. Le test verifie qu'il reste assez de recettes une fois le
+  filtre d'exclusion applique : si incomplet passait a true, le plan
+  repeterait des recettes dans la semaine.
+}

@@ -1,0 +1,67 @@
+meta {
+  name: 16 Publier une recette
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/fil
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{jeton}}
+}
+
+body:json {
+  {
+    "titre": { "fr": "Tajine de poulet aux olives" },
+    "categorie": "Plat principal",
+    "nombrePortions": 4,
+    "tempsPreparation": 60,
+    "ingredients": [
+      { "nom": "Poulet", "quantite": 1, "unite": "kg" },
+      { "nom": "Olives vertes", "quantite": 150, "unite": "g" },
+      { "nom": "Citron confit", "quantite": 1, "unite": "piece" }
+    ],
+    "etapes": [
+      { "texte": "Faire revenir le poulet avec les epices." },
+      { "texte": "Ajouter les olives et le citron confit." },
+      { "texte": "Laisser mijoter 40 minutes a feu doux." }
+    ]
+  }
+}
+
+script:post-response {
+  bru.setVar("idRecettePubliee", res.getBody().recette._id);
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  const recette = res.getBody().recette;
+
+  test("l'auteur vient du jeton", function() {
+    expect(recette.auteur.nomAffiche).to.equal("Testeur Sofra");
+  });
+
+  test("les etapes sont renumerotees a partir de un", function() {
+    expect(recette.etapes.map((e) => e.ordre)).to.deep.equal([1, 2, 3]);
+  });
+
+  test("la recette est une copie complete, pas un lien", function() {
+    expect(recette.ingredients).to.have.lengthOf(3);
+  });
+}
+
+docs {
+  Le seul cas d'utilisation qui exige un compte. L'auteur est pris dans
+  le jeton et jamais dans le corps de la requete : sinon n'importe qui
+  pourrait publier au nom d'un autre membre.
+
+  Une recette publiee est une copie figee : si l'auteur modifie la
+  sienne sur son telephone, le fil ne change pas.
+}

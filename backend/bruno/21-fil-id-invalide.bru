@@ -1,0 +1,21 @@
+meta {
+  name: 21 Lire une recette, identifiant invalide
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/fil/pas-un-identifiant
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+  res.body.erreur.code: eq IDENTIFIANT_INVALIDE
+}
+
+docs {
+  Un identifiant MongoDB a une forme precise : le serveur la verifie
+  avant d'interroger la base.
+}

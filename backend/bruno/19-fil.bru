@@ -1,0 +1,50 @@
+meta {
+  name: 19 Fil de la communaute
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/fil?page=1&limite=20
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limite: 20
+}
+
+assert {
+  res.status: eq 200
+  res.body.recettes: isArray
+}
+
+tests {
+  const corps = res.getBody();
+
+  test("le fil est lisible sans compte", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("la recette publiee au test 16 est en tete", function() {
+    expect(corps.recettes[0]._id).to.equal(bru.getVar("idRecettePubliee"));
+  });
+
+  test("le fil est trie du plus recent au plus ancien", function() {
+    const dates = corps.recettes.map((r) => new Date(r.datePublication).getTime());
+    const triees = [...dates].sort((a, b) => b - a);
+    expect(dates).to.deep.equal(triees);
+  });
+
+  test("la pagination indique s'il existe une page suivante", function() {
+    expect(corps).to.have.property("aSuite");
+  });
+}
+
+docs {
+  Fil chronologique, sans tri ni popularite : c'est une decision de
+  produit, pas une limite technique. Le serveur demande un element de
+  plus que la page pour savoir s'il existe une suite, sans second appel
+  a la base.
+}

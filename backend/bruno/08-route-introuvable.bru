@@ -1,0 +1,27 @@
+meta {
+  name: 08 Route inexistante
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/pas-une-route
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+  res.body.erreur.code: eq ROUTE_INTROUVABLE
+}
+
+tests {
+  test("l'erreur sort en JSON et pas en HTML", function() {
+    expect(res.getHeader("content-type")).to.contain("application/json");
+  });
+}
+
+docs {
+  Sans ce garde-fou, Express renverrait une page HTML, illisible pour
+  l'application mobile. Le test verifie le format commun des erreurs.
+}

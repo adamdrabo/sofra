@@ -1,0 +1,43 @@
+meta {
+  name: 06 Detail d'une recette
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/plan/recettes/{{idRecetteExterne}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.ingredients: isArray
+  res.body.etapes: isArray
+  res.body.alerteExclusion: isArray
+}
+
+tests {
+  const corps = res.getBody();
+
+  test("les ingredients sont renvoyes", function() {
+    expect(corps.ingredients.length).to.be.above(0);
+  });
+
+  test("aucun terme exclu n'a ete detecte", function() {
+    expect(corps.alerteExclusion).to.have.lengthOf(0);
+  });
+
+  test("l'attribution de la source est presente", function() {
+    expect(corps).to.have.property("credits");
+  });
+}
+
+docs {
+  Le detail est affiche puis oublie : la licence Spoonacular interdit de
+  conserver les ingredients et les etapes. Le champ alerteExclusion est
+  le second filet de securite : il liste les termes interdits trouves
+  dans le titre, les ingredients ou les etapes.
+
+  Depend du test 02, qui enregistre l'identifiant de la recette.
+}

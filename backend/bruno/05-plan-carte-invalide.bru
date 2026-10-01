@@ -1,0 +1,31 @@
+meta {
+  name: 05 Plan, carte inconnue
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/plan?carte=PIZZA
+  body: none
+  auth: none
+}
+
+params:query {
+  carte: PIZZA
+}
+
+assert {
+  res.status: eq 400
+  res.body.erreur.code: eq CARTE_INVALIDE
+}
+
+tests {
+  test("le message nomme les cartes acceptees", function() {
+    expect(res.getBody().erreur.message).to.contain("EQUILIBRE");
+  });
+}
+
+docs {
+  Cas d'erreur. Le serveur refuse une carte inconnue avant meme
+  d'appeler Spoonacular : aucun point de quota n'est consomme.
+}

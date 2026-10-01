@@ -1,0 +1,29 @@
+meta {
+  name: 10 Inscription, courriel deja pris
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/auth/inscription
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "courriel": "{{courrielTest}}",
+    "motDePasse": "{{motDePasse}}",
+    "nomAffiche": "Doublon"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.erreur.code: eq COURRIEL_DEJA_UTILISE
+}
+
+docs {
+  Rejoue l'inscription avec le courriel du test 09. L'index unique de
+  MongoDB leve l'erreur 11000, que le gestionnaire traduit en 409.
+}

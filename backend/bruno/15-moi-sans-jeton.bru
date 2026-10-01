@@ -1,0 +1,20 @@
+meta {
+  name: 15 Mon compte, sans session
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/auth/moi
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 401
+  res.body.erreur.code: eq JETON_ABSENT
+}
+
+docs {
+  La garde d'acces refuse l'appel avant d'atteindre le controleur.
+}

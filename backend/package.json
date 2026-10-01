@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed": "node scripts/seedTermesExclus.js"
+    "seed": "node scripts/seedTermesExclus.js",
+    "test:api": "cd bruno && npx -y @usebruno/cli run --env Local",
+    "test": "node --test tests/*.test.js"
   },
   "engines": {
     "node": ">=20"

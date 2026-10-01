@@ -1,0 +1,70 @@
+meta {
+  name: 02 Plan 7 jours, carte Equilibre
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/plan?carte=EQUILIBRE
+  body: none
+  auth: none
+}
+
+params:query {
+  carte: EQUILIBRE
+}
+
+assert {
+  res.status: eq 200
+  res.body.carte: eq EQUILIBRE
+  res.body.jours: isArray
+}
+
+script:post-response {
+  // Garde l'identifiant d'une recette pour le test du detail (06).
+  const jours = res.getBody().jours;
+  const premier = jours[0].diner || jours[0].dejeuner || jours[0].souper;
+  bru.setVar("idRecetteExterne", premier.id);
+}
+
+tests {
+  const corps = res.getBody();
+
+  test("le plan couvre sept jours", function() {
+    expect(corps.jours).to.have.lengthOf(7);
+  });
+
+  test("chaque jour porte trois repas", function() {
+    corps.jours.forEach((jour) => {
+      expect(jour).to.have.property("dejeuner");
+      expect(jour).to.have.property("diner");
+      expect(jour).to.have.property("souper");
+    });
+  });
+
+  test("un repas ne porte que id, titre et image (licence Spoonacular)", function() {
+    const repas = corps.jours[0].diner;
+    expect(Object.keys(repas).sort()).to.deep.equal(["id", "imageUrl", "titre"]);
+  });
+
+  test("aucun titre ne contient un terme exclu evident", function() {
+    const interdits = ["pork", "bacon", "ham", "wine", "beer", "rum", "vodka"];
+    corps.jours.forEach((jour) => {
+      ["dejeuner", "diner", "souper"].forEach((cle) => {
+        const titre = (jour[cle] && jour[cle].titre || "").toLowerCase();
+        interdits.forEach((mot) => {
+          expect(new RegExp("\\b" + mot + "s?\\b").test(titre), titre).to.equal(false);
+        });
+      });
+    });
+  });
+}
+
+docs {
+  Le cas d'utilisation central. Verifie la structure du plan et, surtout,
+  que le filtre sans porc ni alcool a bien ete applique : le dernier test
+  rejoue la verification lexicale sur les titres recus.
+
+  Ce test enregistre aussi l'identifiant d'une recette, utilise par le
+  test 06.
+}
