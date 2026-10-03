@@ -1,0 +1,34 @@
+meta {
+  name: 13 Connexion, mauvais mot de passe
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/auth/connexion
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "courriel": "{{courrielTest}}",
+    "motDePasse": "mauvaisMotDePasse"
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.erreur.code: eq IDENTIFIANTS_INVALIDES
+}
+
+tests {
+  test("le message ne revele pas si le courriel existe", function() {
+    expect(res.getBody().erreur.message).to.equal("Courriel ou mot de passe invalide.");
+  });
+}
+
+docs {
+  Le message est identique pour un courriel inconnu et un mauvais mot de
+  passe : sinon on permettrait de deviner quels courriels ont un compte.
+}

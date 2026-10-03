@@ -1,0 +1,21 @@
+meta {
+  name: 07 Detail, identifiant invalide
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/plan/recettes/abc
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 400
+  res.body.erreur.code: eq IDENTIFIANT_INVALIDE
+}
+
+docs {
+  Cas d'erreur. Un identifiant Spoonacular est un nombre : le serveur
+  refuse avant d'appeler l'API.
+}

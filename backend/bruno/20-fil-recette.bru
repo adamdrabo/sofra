@@ -1,0 +1,33 @@
+meta {
+  name: 20 Lire une recette publiee
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/fil/{{idRecettePubliee}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  const recette = res.getBody().recette;
+
+  test("la recette porte ses ingredients et ses etapes", function() {
+    expect(recette.ingredients.length).to.be.above(0);
+    expect(recette.etapes.length).to.be.above(0);
+  });
+
+  test("l'auteur est renvoye sans donnee sensible", function() {
+    expect(Object.keys(recette.auteur).sort()).to.deep.equal(["id", "nomAffiche"]);
+  });
+}
+
+docs {
+  C'est cette adresse que l'application appelle pour afficher une
+  recette du fil, et pour l'adapter dans les recettes de la personne.
+}

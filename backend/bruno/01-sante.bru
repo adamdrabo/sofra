@@ -1,0 +1,31 @@
+meta {
+  name: 01 Sante du serveur
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/sante
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.ok: eq true
+}
+
+tests {
+  test("la base MongoDB est connectee", function() {
+    expect(res.getBody().base).to.equal("connectee");
+  });
+
+  test("l'etat du quota est renvoye", function() {
+    expect(res.getBody().quota).to.have.property("jourUtc");
+  });
+}
+
+docs {
+  Premier appel a lancer : il dit en une reponse si le serveur tourne,
+  si la base repond, et ou en est le quota Spoonacular du jour.
+}

@@ -1,0 +1,53 @@
+meta {
+  name: 09 Inscription
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/auth/inscription
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "courriel": "{{courrielTest}}",
+    "motDePasse": "{{motDePasse}}",
+    "nomAffiche": "Testeur Sofra",
+    "langue": "fr"
+  }
+}
+
+script:pre-request {
+  // Un courriel neuf a chaque execution : la collection reste rejouable
+  // sans vider la base entre deux passages.
+  bru.setVar("courrielTest", "test-" + Date.now() + "@sofra.test");
+}
+
+script:post-response {
+  bru.setVar("jeton", res.getBody().jeton);
+}
+
+assert {
+  res.status: eq 201
+  res.body.jeton: isDefined
+}
+
+tests {
+  const corps = res.getBody();
+
+  test("le mot de passe hache n'est jamais renvoye", function() {
+    expect(corps.compte).to.not.have.property("motDePasseHash");
+  });
+
+  test("le courriel est enregistre en minuscules", function() {
+    expect(corps.compte.courriel).to.equal(corps.compte.courriel.toLowerCase());
+  });
+}
+
+docs {
+  Cree un compte neuf a chaque execution et garde son jeton pour les
+  tests suivants. Le mot de passe est hache avec bcrypt avant d'etre
+  enregistre, et n'est jamais renvoye.
+}

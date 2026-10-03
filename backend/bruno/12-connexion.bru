@@ -1,0 +1,38 @@
+meta {
+  name: 12 Connexion
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/auth/connexion
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "courriel": "{{courrielTest}}",
+    "motDePasse": "{{motDePasse}}"
+  }
+}
+
+script:post-response {
+  bru.setVar("jeton", res.getBody().jeton);
+}
+
+assert {
+  res.status: eq 200
+  res.body.jeton: isDefined
+}
+
+tests {
+  test("le jeton a la forme d'un JWT (trois parties)", function() {
+    expect(res.getBody().jeton.split(".")).to.have.lengthOf(3);
+  });
+}
+
+docs {
+  Se connecte avec le compte cree au test 09 et remplace le jeton en
+  memoire. Les tests suivants qui exigent une session l'utilisent.
+}

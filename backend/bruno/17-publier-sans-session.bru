@@ -1,0 +1,30 @@
+meta {
+  name: 17 Publier sans session
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/fil
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "titre": { "fr": "Recette non autorisee" },
+    "nombrePortions": 2,
+    "ingredients": [{ "nom": "Riz", "quantite": 200, "unite": "g" }],
+    "etapes": [{ "texte": "Cuire le riz." }]
+  }
+}
+
+assert {
+  res.status: eq 401
+  res.body.erreur.code: eq JETON_ABSENT
+}
+
+docs {
+  La frontiere Visiteur / Membre : lire le fil est ouvert, publier ne
+  l'est pas.
+}

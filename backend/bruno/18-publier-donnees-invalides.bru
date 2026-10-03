@@ -1,0 +1,35 @@
+meta {
+  name: 18 Publier sans ingredient
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/fil
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{jeton}}
+}
+
+body:json {
+  {
+    "titre": { "fr": "Recette vide" },
+    "nombrePortions": 2,
+    "ingredients": [],
+    "etapes": [{ "texte": "Rien a faire." }]
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.erreur.code: eq DONNEES_INVALIDES
+}
+
+docs {
+  La validation du modele exige au moins un ingredient et au moins une
+  etape. L'erreur Mongoose est traduite en 400 par le gestionnaire
+  d'erreurs, avec le premier message de validation.
+}

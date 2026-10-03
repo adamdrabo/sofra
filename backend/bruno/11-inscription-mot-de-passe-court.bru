@@ -1,0 +1,33 @@
+meta {
+  name: 11 Inscription, mot de passe trop court
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/auth/inscription
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "courriel": "{{courrielCourt}}",
+    "motDePasse": "abc",
+    "nomAffiche": "Court"
+  }
+}
+
+script:pre-request {
+  bru.setVar("courrielCourt", "court-" + Date.now() + "@sofra.test");
+}
+
+assert {
+  res.status: eq 400
+  res.body.erreur.code: eq MOT_DE_PASSE_TROP_COURT
+}
+
+docs {
+  Le mot de passe doit faire entre 8 et 72 caracteres. La limite haute
+  vient de bcrypt, qui ignore silencieusement tout ce qui depasse.
+}

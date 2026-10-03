@@ -1,0 +1,31 @@
+meta {
+  name: 04 Plan, carte Riche en proteines
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/plan?carte=PROTEINES
+  body: none
+  auth: none
+}
+
+params:query {
+  carte: PROTEINES
+}
+
+assert {
+  res.status: eq 200
+  res.body.carte: eq PROTEINES
+}
+
+tests {
+  test("la carte renvoie assez de recettes pour ne rien repeter", function() {
+    expect(res.getBody().incomplet).to.equal(false);
+  });
+}
+
+docs {
+  Meme verification que pour la carte Rapide. Celle-ci ajoute une
+  quantite minimale de proteines par portion a l'appel Spoonacular.
+}
