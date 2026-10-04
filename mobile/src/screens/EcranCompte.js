@@ -8,43 +8,73 @@ import { clientSofra } from '../services/clientSofra';
 import { sessionService } from '../services/sessionService';
 import { useEspacementBarreOnglets } from '../hooks/useEspacementBarreOnglets';
 
+const LONGUEUR_MIN_MOT_DE_PASSE = 8;
+
 export function EcranCompte() {
   const espacementBarre = useEspacementBarreOnglets();
   const [compte, setCompte] = useState(null);
+  const [mode, setMode] = useState('inscription');
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [nomAffiche, setNomAffiche] = useState('');
   const [erreur, setErreur] = useState(null);
+  const [enChargement, setEnChargement] = useState(false);
+
+  const estConnexion = mode === 'connexion';
 
   useEffect(() => {
     sessionService.obtenirCompte().then(setCompte);
   }, []);
 
-  async function inscrire() {
+  function changerMode(nouveauMode) {
+    setMode(nouveauMode);
     setErreur(null);
-    try {
-      const { jeton, compte: nouveauCompte } = await clientSofra.inscription(courriel, motDePasse, nomAffiche, 'fr');
-      await sessionService.enregistrer(jeton, nouveauCompte);
-      setCompte(nouveauCompte);
-    } catch (e) {
-      setErreur(e instanceof Error ? e.message : 'Erreur inconnue');
-    }
+    setMotDePasse('');
   }
 
-  async function seConnecter() {
+  function verifierChamps() {
+    if (!estConnexion && nomAffiche.trim().length < 2) {
+      return 'Entre un nom affiché d\'au moins 2 caractères.';
+    }
+    if (!courriel.trim()) {
+      return 'Entre ton courriel.';
+    }
+    if (!motDePasse) {
+      return 'Entre ton mot de passe.';
+    }
+    if (!estConnexion && motDePasse.length < LONGUEUR_MIN_MOT_DE_PASSE) {
+      return `Le mot de passe doit contenir au moins ${LONGUEUR_MIN_MOT_DE_PASSE} caractères.`;
+    }
+    return null;
+  }
+
+  async function soumettre() {
+    const probleme = verifierChamps();
+    if (probleme) {
+      setErreur(probleme);
+      return;
+    }
+
     setErreur(null);
+    setEnChargement(true);
     try {
-      const { jeton, compte: compteConnecte } = await clientSofra.connexion(courriel, motDePasse);
-      await sessionService.enregistrer(jeton, compteConnecte);
-      setCompte(compteConnecte);
+      const reponse = estConnexion
+        ? await clientSofra.connexion(courriel.trim(), motDePasse)
+        : await clientSofra.inscription(courriel.trim(), motDePasse, nomAffiche.trim(), 'fr');
+      await sessionService.enregistrer(reponse.jeton, reponse.compte);
+      setCompte(reponse.compte);
+      setMotDePasse('');
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Erreur inconnue');
+    } finally {
+      setEnChargement(false);
     }
   }
 
   async function deconnecter() {
     await sessionService.deconnecter();
     setCompte(null);
+    changerMode('connexion');
   }
 
   if (compte) {
@@ -65,7 +95,10 @@ export function EcranCompte() {
 
   return (
     <KeyboardAvoidingView style={styles.ecran} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <EnteteEcran titre="Mon compte" sousTitre="Connecte-toi pour retrouver tes informations" />
+      <EnteteEcran
+        titre="Mon compte"
+        sousTitre={estConnexion ? 'Connecte-toi pour publier tes recettes' : 'Crée un compte pour publier tes recettes'}
+      />
       <ScrollView
         contentContainerStyle={[styles.contenu, { paddingBottom: espacementBarre }]}
         keyboardShouldPersistTaps="handled"
@@ -74,22 +107,28 @@ export function EcranCompte() {
           <View style={styles.introFormulaire}>
             <View style={styles.miniLogo}><Text style={styles.miniLogoTexte}>S</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.formTitre}>Bienvenue sur Sofra</Text>
-              <Text style={styles.formSousTitre}>Crée ton compte ou connecte-toi.</Text>
+              <Text style={styles.formTitre}>{estConnexion ? 'Connexion' : 'Créer un compte'}</Text>
+              <Text style={styles.formSousTitre}>
+                {estConnexion ? 'Entre ton courriel et ton mot de passe.' : 'Quelques informations pour commencer.'}
+              </Text>
             </View>
           </View>
 
           {erreur ? <View style={styles.erreur}><Text style={styles.erreurTexte}>{erreur}</Text></View> : null}
 
           <View style={styles.champs}>
-            <Text style={styles.etiquette}>Nom affiché</Text>
-            <TextInput
-              placeholder="Ex. Rami"
-              placeholderTextColor={couleurs.placeholderPhoto}
-              value={nomAffiche}
-              onChangeText={setNomAffiche}
-              style={styles.champ}
-            />
+            {estConnexion ? null : (
+              <>
+                <Text style={styles.etiquette}>Nom affiché</Text>
+                <TextInput
+                  placeholder="Ex. Rami"
+                  placeholderTextColor={couleurs.placeholderPhoto}
+                  value={nomAffiche}
+                  onChangeText={setNomAffiche}
+                  style={styles.champ}
+                />
+              </>
+            )}
 
             <Text style={styles.etiquette}>Courriel</Text>
             <TextInput
@@ -98,13 +137,14 @@ export function EcranCompte() {
               value={courriel}
               onChangeText={setCourriel}
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
               style={styles.champ}
             />
 
             <Text style={styles.etiquette}>Mot de passe</Text>
             <TextInput
-              placeholder="Ton mot de passe"
+              placeholder={estConnexion ? 'Ton mot de passe' : 'Au moins 8 caractères'}
               placeholderTextColor={couleurs.placeholderPhoto}
               value={motDePasse}
               onChangeText={setMotDePasse}
@@ -113,8 +153,17 @@ export function EcranCompte() {
             />
           </View>
 
-          <Bouton titre="Créer mon compte" onPress={inscrire} />
-          <Bouton titre="J'ai déjà un compte" variante="contour" onPress={seConnecter} />
+          <Bouton
+            titre={estConnexion ? 'Se connecter' : 'Créer mon compte'}
+            onPress={soumettre}
+            enChargement={enChargement}
+          />
+          <Bouton
+            titre={estConnexion ? 'Créer un compte' : 'J\'ai déjà un compte'}
+            variante="contour"
+            onPress={() => changerMode(estConnexion ? 'inscription' : 'connexion')}
+            desactive={enChargement}
+          />
         </Carte>
       </ScrollView>
     </KeyboardAvoidingView>
