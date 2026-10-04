@@ -1,10 +1,6 @@
-# Sofra — application mobile
+# Sofra, application mobile
 
-React Native + Expo + **React Navigation** (Stack + Bottom Tabs), en
-JavaScript — même structure que tes anciens projets (`App.js`,
-`components/`, `screens/`). Testable directement dans **Expo Go** :
-stockage local en clé-valeur (`AsyncStorage`), aucun module natif
-personnalisé.
+Application React Native avec Expo, en JavaScript. Elle se teste directement dans Expo Go : aucun module natif personnalisé.
 
 ## Installation
 
@@ -13,10 +9,17 @@ cd mobile
 npm install
 ```
 
-Modifie `src/config.js` avec l'adresse IP locale de ton serveur backend
-(dossier `../backend`) si tu testes sur un téléphone physique avec Expo
-Go — `localhost` ne fonctionne que dans un simulateur sur le même
-ordinateur.
+## Adresse du serveur
+
+L'application a besoin du serveur (dossier `../backend`) pour générer le plan, se connecter et lire le fil de la communauté. L'adresse se règle dans `src/config.js` :
+
+| Appareil | Valeur de `API_BASE_URL` |
+|---|---|
+| Simulateur iOS | `http://localhost:3000/api` |
+| Émulateur Android | `http://10.0.2.2:3000/api` |
+| Téléphone avec Expo Go | l'adresse affichée par le serveur à la ligne `Depuis le telephone` |
+
+Avec un téléphone, l'ordinateur et le téléphone doivent être sur le même wifi.
 
 ## Démarrage
 
@@ -24,69 +27,41 @@ ordinateur.
 npx expo start
 ```
 
-Scanne le QR code avec l'app **Expo Go**. Si Expo Go annonce une
-version de SDK différente de celle du projet, lance
-`npx expo install --fix` pour réaligner les versions des paquets.
+Appuyer sur `i` pour le simulateur iOS, sur `a` pour l'émulateur Android, ou scanner le code QR avec Expo Go.
+
+Si Expo Go annonce une version de SDK différente de celle du projet (SDK 57), lancer `npx expo install --fix` pour réaligner les versions des paquets.
+
+## Fonctionnalités
+
+- **Accueil au premier lancement :** nombre de personnes, type de plan (Équilibré, Rapide à cuisiner, Riche en protéines), langue.
+- **Semaine :** génération d'un plan de 7 jours (déjeuner, dîner, souper) à partir de recettes sans porc ni alcool, fiche détaillée de chaque recette, remplacement d'un repas par une de ses propres recettes.
+- **Recettes :** création et modification de recettes personnelles, avec ingrédients et étapes. Un contrôle évite de créer deux fois le même ingrédient sous des noms proches.
+- **Liste :** liste d'épicerie calculée à partir du plan, avec les quantités regroupées par ingrédient et une estimation du coût.
+- **Communauté :** fil des recettes publiées, lisible sans compte. Une recette publiée peut être copiée dans ses propres recettes.
+- **Compte :** inscription et connexion. Un compte est requis seulement pour publier une recette.
 
 ## Organisation du code
 
-- `App.js` — point d'entrée : ensemence le stockage local puis affiche `AppNavigator`.
-- `src/navigation/AppNavigator.js` — pile principale (Stack) : les onglets, plus Configuration, Fiche recette et Nouvelle/Modifier recette par-dessus.
-- `src/navigation/TabsNavigator.js` — barre du bas (Bottom Tabs) : Semaine, Recettes, Liste, Communauté, Compte.
-- `src/screens/` — un fichier par écran, chacun reçoit `navigation` (et `route` si l'écran a des paramètres) comme dans tes devoirs précédents.
-- `src/components/` — composants partagés (`Bouton`, `Carte`, `Puce`, `EnteteEcran`, `ModalNormalisationIngredient`), style repris du prototype visuel (`src/theme.js`).
-- `src/db/storage.js` — unique porte d'entrée vers AsyncStorage (lire/écrire par clé). `src/db/seed.js` écrit les données de départ (provenance SEED) au premier lancement.
-- `src/repositories/` — une porte d'entrée par paquet du modèle (préférences, référentiels, recettes, plan, prix, liste de courses, favoris). Toutes les fonctions sont asynchrones (`await`).
-- `src/services/` — logique qui ne touche pas au stockage : appel au serveur (`clientSofra.js`), session (`sessionService.js`), normalisation des noms d'ingrédients, calcul de coût, génération du plan.
+- `App.js` : point d'entrée. Remplit le stockage local au premier lancement, puis affiche la navigation.
+- `src/navigation/AppNavigator.js` : pile principale (accueil, onglets, fiches recette, formulaires).
+- `src/navigation/TabsNavigator.js` : barre d'onglets du bas (Semaine, Recettes, Liste, Communauté, Compte).
+- `src/screens/` : un fichier par écran.
+- `src/components/` : composants partagés (`Bouton`, `Carte`, `Puce`, `EnteteEcran`, fenêtres modales).
+- `src/db/storage.js` : seul accès à AsyncStorage (lire et écrire par clé). `src/db/seed.js` écrit les données de départ.
+- `src/repositories/` : un fichier par type de donnée (préférences, recettes, plan, prix, liste de courses, favoris).
+- `src/services/` : logique sans stockage direct. Appels au serveur (`clientSofra.js`), session (`sessionService.js`), génération du plan, liste de courses, calcul de coût, normalisation des ingrédients.
+- `src/config.js` : adresse du serveur.
+- `src/theme.js` : couleurs et styles communs.
 
-## Navigation : comment on passe d'un écran à l'autre
+## Stockage local
 
-Comme dans le devoir Navigation (Drawer/Tabs/Stack imbriqués) :
+Les données de l'utilisateur restent sur l'appareil, dans un stockage clé-valeur (AsyncStorage). Une recette contient directement ses ingrédients et ses étapes dans le même objet JSON. Les règles de cohérence (un ingrédient unique par nom normalisé, par exemple) sont vérifiées dans le code des repositories.
 
-```js
-// Aller vers un écran avec un paramètre
-navigation.navigate('FicheRecette', { id: recette.id });
+Le jeton de session est conservé à part, dans le stockage sécurisé de l'appareil (`expo-secure-store`).
 
-// Lire le paramètre dans l'écran de destination
-export function EcranFicheRecette({ route, navigation }) {
-  const { id } = route.params;
-  ...
-}
+## Limites connues
 
-// Revenir en arrière (ex. après avoir enregistré un formulaire)
-navigation.goBack();
-```
-
-## Stockage local : clé-valeur, pas SQLite
-
-Le document de conception v5 a remplacé la base SQLite relationnelle
-par un stockage clé-valeur simple. Une recette porte directement ses
-ingrédients et ses étapes (imbriqués dans le même objet JSON) plutôt
-que d'être éclatée en plusieurs tables jointes. Les règles qu'une base
-relationnelle aurait imposées (unicité de `nomNormalise`, un seul prix
-personnalisé par jour, etc.) sont vérifiées dans le code des
-repositories — voir les commentaires dans `src/repositories/`.
-
-## Écrans "Gestion des recettes" et "Normalisation"
-
-Branchés sur le vrai stockage local :
-
-- `src/screens/EcranRecettes.js` — liste "Mes recettes", ensemencée avec deux recettes d'exemple.
-- `src/screens/EcranFicheRecette.js` — fiche recette.
-- `src/screens/EcranNouvelleRecette.js` — création **et** modification (`route.params.id`), avec ingrédients et étapes ajoutables/supprimables. "Enregistrer" persiste vraiment via `recetteRepository`.
-- `src/components/ModalNormalisationIngredient.js` — composant "Normalisation" : compare le nom tapé aux ingrédients déjà connus via `normaliserNom()` et propose de réutiliser l'existant plutôt que de créer un doublon ; sinon, crée le nouvel ingrédient via `referentielsRepository.trouverOuCreerIngredient()`.
-
-## Ce qui reste à compléter
-
-1. **Génération de la liste de courses** — l'agrégation par ingrédient et unité de base (normalisation + `coutService.obtenirPrixRetenu`) doit être écrite, puis passée à `coursesRepository.creerListe()`.
-2. **Adapter une recette de la communauté** — copier les ingrédients d'une recette publiée dans `recetteRepository.creer()`, en résolvant chaque ingrédient via `referentielsRepository.trouverOuCreerIngredient()`.
-3. **Écran de publication** — formulaire qui appelle `clientSofra.publierRecette()`.
-4. **Favoris** — `favoriRepository` est prêt, pas encore branché à un écran.
-5. **Multilingue (fr/en/ar)** — actuellement seul le français est saisi/affiché.
-6. **Police Rubik** — installer `@expo-google-fonts/rubik` et la charger dans `App.js` pour un rendu identique au prototype (l'app retombe sur la police système en attendant).
-
-## Répartition possible entre les 3 membres de l'équipe
-
-- **Personne A** — backend complet (auth, passerelle Spoonacular, fil).
-- **Personne B** — plan de la semaine + génération de liste + calcul de coût (point 1).
-- **Personne C** — publication, favoris, multilingue (points 2 à 5).
+- La liste d'épicerie et le coût sont calculés seulement pour les recettes créées par l'utilisateur. Les recettes venant de Spoonacular ne sont pas chiffrées, à cause des conditions d'utilisation de cette API.
+- L'interface est en français. Le choix de langue est enregistré, mais les écrans ne sont pas encore traduits.
+- Les favoris sont prêts côté données, mais pas encore reliés à un écran.
+- L'application n'a pas de tests unitaires. Les tests du projet sont dans `../backend`.
